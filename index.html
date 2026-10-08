@@ -1,1764 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Voxel Survival</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Web Sandbox Survival</title>
+    <!-- ─── CSS STYLE SHEET ────────────────────────────────────────── -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
 
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#79bde8;font-family:Arial}
-canvas{display:block}
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
 
-#crosshair{
- position:fixed;left:50%;top:50%;
- width:20px;height:20px;
- transform:translate(-50%,-50%);
- pointer-events:none;z-index:20
-}
-#crosshair:before,#crosshair:after{
- content:"";position:absolute;background:#fff;
- box-shadow:0 0 3px #000
-}
-#crosshair:before{width:20px;height:2px;top:9px}
-#crosshair:after{height:20px;width:2px;left:9px}
+        /* Crosshair in the center of the screen */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: white;
+        }
+        #crosshair::before { top: 4px; left: 0; width: 10px; height: 2px; }
+        #crosshair::after { top: 0; left: 4px; width: 2px; height: 10px; }
 
-#hud{
- position:fixed;left:15px;top:15px;
- color:white;background:#0009;padding:10px;
- z-index:20;border-radius:6px;
- text-shadow:1px 1px #000
-}
+        /* HUD & UI Panels */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            pointer-events: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
 
-.bar{
- width:210px;height:18px;
- background:#222;margin-top:4px;
- border:2px solid #111
-}
-.fill{height:100%;transition:.15s}
-#healthFill{background:#d22}
-#foodFill{background:#e9a31a}
+        .stat-bar {
+            font-weight: bold;
+        }
+        .highlight {
+            color: #4CAF50;
+        }
 
-#hotbar{
- position:fixed;bottom:18px;left:50%;
- transform:translateX(-50%);
- display:flex;gap:4px;z-index:20
-}
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            text-align: center;
+            pointer-events: none;
+        }
 
-.slot{
- width:58px;height:58px;
- background:#222d;border:3px solid #666;
- position:relative;display:flex;
- align-items:center;justify-content:center;
- color:#fff;text-shadow:1px 1px #000
-}
-.slot.selected{border-color:white;transform:scale(1.08)}
-.slot span{
- position:absolute;left:4px;top:2px;font-weight:bold
-}
-.icon{width:32px;height:32px;border:2px solid #333}
+        /* Click to Play Screen */
+        #blocker {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        #instructions-popup {
+            font-size: 20px;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 10px;
+        }
+    </style>
 
-#start{
- position:fixed;inset:0;
- z-index:100;background:#000b;
- color:#fff;display:flex;
- flex-direction:column;align-items:center;
- justify-content:center;text-align:center
-}
-#start h1{font-size:50px;margin:0 0 5px}
-#start button{
- font-size:22px;padding:14px 35px;
- cursor:pointer;border:0;border-radius:5px
-}
-
-#inventory{
- display:none;position:fixed;
- left:50%;top:50%;
- transform:translate(-50%,-50%);
- z-index:50;background:#222;
- border:5px solid #111;
- padding:18px;color:#fff;
- width:440px
-}
-#inventory h2{margin-top:0}
-#items{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.item{
- background:#444;border:2px solid #777;
- min-height:60px;padding:6px;
- cursor:pointer
-}
-.item:hover{border-color:#fff}
-
-#crafting{
- margin-top:15px;
- border-top:2px solid #555;
- padding-top:10px
-}
-.craft{
- background:#555;color:white;
- border:2px solid #888;
- padding:8px;margin:4px;
- cursor:pointer
-}
-
-#death{
- display:none;position:fixed;inset:0;
- z-index:90;background:#000c;
- color:white;align-items:center;
- justify-content:center;flex-direction:column
-}
-#death h1{font-size:60px;color:#d22}
-#death button{padding:12px 30px;font-size:20px}
-
-#hint{
- position:fixed;right:15px;top:15px;
- z-index:20;color:white;background:#0009;
- padding:10px;line-height:1.5;
- border-radius:6px
-}
-</style>
+    <!-- Include Three.js library from CDN -->
+    <script src="https://cloudflare.com"></script>
 </head>
-
 <body>
 
-<div id="start">
-<h1>Voxel Survival</h1>
-<p>Mine • Craft • Explore • Survive</p>
-<button id="play">PLAY</button>
-</div>
-
-<div id="crosshair"></div>
-
-<div id="hud">
- ❤️ <span id="hpText">20</span>/20
- <div class="bar"><div id="healthFill" class="fill"></div></div>
-
- 🍖 <span id="foodText">20</span>/20
- <div class="bar"><div id="foodFill" class="fill"></div></div>
-
- <div>💎 XP: <span id="xp">0</span></div>
-</div>
-
-<div id="hint">
-WASD — Move<br>
-SHIFT — Sprint<br>
-SPACE — Jump<br>
-LMB — Mine / Attack<br>
-RMB — Place block<br>
-1-8 — Hotbar<br>
-E — Inventory<br>
-F — Eat food<br>
-ESC — Release mouse
-</div>
-
-<div id="hotbar"></div>
-
-<div id="inventory">
-<h2>Inventory</h2>
-<div id="items"></div>
-
-<div id="crafting">
-<b>Crafting</b><br>
-<button class="craft" onclick="craft('planks')">
-🪵 1 Log → 4 Planks
-</button>
-<button class="craft" onclick="craft('stick')">
-🪵 2 Planks → 4 Sticks
-</button>
-<button class="craft" onclick="craft('pickaxe')">
-⛏️ 3 Stone + 2 Stick → Pickaxe
-</button>
-<button class="craft" onclick="craft('sword')">
-⚔️ 2 Stone + 1 Stick → Sword
-</button>
-<button class="craft" onclick="craft('torch')">
-🔥 1 Coal + 1 Stick → 4 Torches
-</button>
-</div>
-</div>
-
-<div id="death">
-<h1>You Died</h1>
-<button onclick="respawn()">Respawn</button>
-</div>
-
-
-<script type="module">
-
-import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
-
-import {PointerLockControls} from
-"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/controls/PointerLockControls.js";
-
-
-// ============================================================
-// BLOCKS
-// ============================================================
-
-const BLOCKS={
-
-grass:{color:0x55aa45,hard:1},
-dirt:{color:0x80502c,hard:1},
-stone:{color:0x777777,hard:3},
-sand:{color:0xdac77a,hard:1},
-
-wood:{color:0x8b5a2b,hard:2},
-planks:{color:0xb87a42,hard:1},
-leaves:{color:0x2f8f3a,transparent:true,hard:.2},
-
-coal_ore:{color:0x333333,hard:4},
-iron_ore:{color:0xb5a79a,hard:5},
-gold_ore:{color:0xffd43b,hard:6},
-diamond_ore:{color:0x55eaff,hard:7},
-emerald_ore:{color:0x19d477,hard:7},
-
-water:{
- color:0x3399dd,
- transparent:true,
- hard:0
-},
-
-glass:{
- color:0x99ddff,
- transparent:true,
- hard:.5
-},
-
-torch:{
- color:0xffaa33,
- hard:.1
-}
-
-};
-
-
-// ============================================================
-// ITEMS
-// ============================================================
-
-const items={
-
-grass:0,
-dirt:0,
-stone:0,
-sand:0,
-wood:0,
-planks:0,
-leaves:0,
-
-coal:0,
-iron_ore:0,
-gold_ore:0,
-diamond_ore:0,
-emerald_ore:0,
-
-stick:0,
-torch:0,
-
-pickaxe:0,
-sword:0,
-
-apple:5,
-raw_meat:3,
-cooked_meat:0
-
-};
-
-
-// ============================================================
-// THREE
-// ============================================================
-
-const scene=new THREE.Scene();
-
-scene.background=new THREE.Color(0x78bce5);
-
-scene.fog=new THREE.Fog(
- 0x78bce5,35,100
-);
-
-
-const camera=new THREE.PerspectiveCamera(
- 75,
- innerWidth/innerHeight,
- .05,
- 200
-);
-
-camera.position.set(0,15,0);
-
-
-const renderer=new THREE.WebGLRenderer({
- antialias:true
-});
-
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(
- Math.min(devicePixelRatio,2)
-);
-
-renderer.shadowMap.enabled=true;
-
-document.body.appendChild(
- renderer.domElement
-);
-
-
-const ambient=new THREE.HemisphereLight(
- 0xbde7ff,
- 0x403020,
- 1.4
-);
-
-scene.add(ambient);
-
-
-const sun=new THREE.DirectionalLight(
- 0xffffff,2
-);
-
-sun.castShadow=true;
-sun.shadow.mapSize.width=2048;
-sun.shadow.mapSize.height=2048;
-
-scene.add(sun);
-
-
-const controls=
- new PointerLockControls(
-  camera,
-  document.body
- );
-
-scene.add(
- controls.getObject()
-);
-
-
-// ============================================================
-// WORLD
-// ============================================================
-
-const SIZE=64;
-const HEIGHT=28;
-
-const world=new Map();
-
-const key=(x,y,z)=>`${x},${y},${z}`;
-
-function setBlock(x,y,z,type){
-
- if(
-  x<-SIZE/2||
-  x>=SIZE/2||
-  z<-SIZE/2||
-  z>=SIZE/2||
-  y<0||
-  y>=HEIGHT
- )return;
-
- world.set(key(x,y,z),type);
-}
-
-function getBlock(x,y,z){
- return world.get(key(x,y,z));
-}
-
-function removeBlock(x,y,z){
- world.delete(key(x,y,z));
-}
-
-
-// ============================================================
-// TERRAIN
-// ============================================================
-
-function hash(x,z){
-
- let n=Math.sin(
-   x*127.1+z*311.7
- )*43758.5453;
-
- return n-Math.floor(n);
-}
-
-
-function noise(x,z){
-
- const x0=Math.floor(x);
- const z0=Math.floor(z);
-
- const xf=x-x0;
- const zf=z-z0;
-
- const a=hash(x0,z0);
- const b=hash(x0+1,z0);
- const c=hash(x0,z0+1);
- const d=hash(x0+1,z0+1);
-
- const u=xf*xf*(3-2*xf);
- const v=zf*zf*(3-2*zf);
-
- return a*(1-u)*(1-v)+
-        b*u*(1-v)+
-        c*(1-u)*v+
-        d*u*v;
-}
-
-
-function heightAt(x,z){
-
- return Math.floor(
-   5+
-   noise(x*.045,z*.045)*9+
-   noise(x*.12,z*.12)*3
- );
-}
-
-
-function tree(x,y,z){
-
- for(let i=0;i<4;i++)
-  setBlock(x,y+i,z,"wood");
-
- for(let dx=-2;dx<=2;dx++)
- for(let dz=-2;dz<=2;dz++)
- for(let dy=-1;dy<=1;dy++){
-
-  if(Math.abs(dx)+Math.abs(dz)<4)
-   setBlock(
-    x+dx,
-    y+4+dy,
-    z+dz,
-    "leaves"
-   );
- }
-
- setBlock(x,y+6,z,"leaves");
-}
-
-
-function generate(){
-
- for(
-  let x=-SIZE/2;
-  x<SIZE/2;
-  x++
- )
- for(
-  let z=-SIZE/2;
-  z<SIZE/2;
-  z++
- ){
-
-  const h=Math.min(
-   HEIGHT-1,
-   heightAt(x,z)
-  );
-
-  for(let y=0;y<=h;y++){
-
-   let type;
-
-   if(y===h)
-    type=h<=6?"sand":"grass";
-
-   else if(y>h-3)
-    type="dirt";
-
-   else{
-
-    type="stone";
-
-    // Ores
-    const r=hash(
-     x*19+y*7,
-     z*31+y*11
-    );
-
-    if(y<12&&r>.985)
-     type="diamond_ore";
-
-    else if(y<16&&r>.975)
-     type="gold_ore";
-
-    else if(y<20&&r>.95)
-     type="iron_ore";
-
-    else if(r>.90)
-     type="coal_ore";
-   }
-
-   setBlock(x,y,z,type);
-  }
-
-
-  if(h<6){
-
-   for(let y=h+1;y<=6;y++)
-    setBlock(x,y,z,"water");
-
-  }
-
-
-  if(
-   h>7 &&
-   hash(x+200,z+500)>.88
-  ){
-   tree(x,h+1,z);
-  }
- }
-
- // caves
- generateCaves();
-}
-
-
-function generateCaves(){
-
- for(let i=0;i<100;i++){
-
-  let x=Math.floor(
-   (hash(i*3,8)*2-1)*28
-  );
-
-  let z=Math.floor(
-   (hash(i*7,12)*2-1)*28
-  );
-
-  let y=
-   3+
-   Math.floor(
-    hash(i*9,15)*14
-   );
-
-  for(let j=0;j<20;j++){
-
-   const r=2+
-    Math.sin(j)*.8;
-
-   for(let dx=-2;dx<=2;dx++)
-   for(let dy=-2;dy<=2;dy++)
-   for(let dz=-2;dz<=2;dz++){
-
-    if(
-     dx*dx+dy*dy+dz*dz<r*r
-    ){
-     removeBlock(
-      Math.floor(x+dx+j*.5),
-      y+dy,
-      Math.floor(z+dz)
-     );
-    }
-   }
-  }
- }
-}
-
-
-// ============================================================
-// MESHES
-// ============================================================
-
-const geometry=
- new THREE.BoxGeometry(1,1,1);
-
-const materials={};
-
-for(const [name,b] of Object.entries(BLOCKS)){
-
- materials[name]=
-  new THREE.MeshLambertMaterial({
-
-   color:b.color,
-
-   transparent:!!b.transparent,
-
-   opacity:
-    name==="water"?0.6:
-    name==="glass"?0.45:
-    1,
-
-   depthWrite:
-    !b.transparent
-  });
-}
-
-
-const meshes=new Map();
-
-
-function rebuild(){
-
- for(const m of meshes.values())
-  scene.remove(m);
-
- meshes.clear();
-
-
- for(const [k,type] of world){
-
-  const [x,y,z]=k.split(",").map(Number);
-
-  const m=new THREE.Mesh(
-   geometry,
-   materials[type]
-  );
-
-  m.position.set(
-   x+.5,
-   y+.5,
-   z+.5
-  );
-
-  m.castShadow=true;
-  m.receiveShadow=true;
-
-  m.userData={
-   x,y,z,type
-  };
-
-  scene.add(m);
-
-  meshes.set(k,m);
- }
-}
-
-
-// ============================================================
-// PLAYER
-// ============================================================
-
-let health=20;
-let hunger=20;
-let xp=0;
-
-let velocityY=0;
-let grounded=false;
-let dead=false;
-
-const PLAYER_HEIGHT=1.8;
-const RADIUS=.3;
-
-
-const keys={};
-
-addEventListener(
- "keydown",
- e=>{
-
-  keys[e.code]=true;
-
-  if(e.code==="KeyE")
-   toggleInventory();
-
-  if(e.code==="KeyF")
-   eatFood();
-
-  if(e.code.startsWith("Digit")){
-
-   const n=+e.code.slice(5);
-
-   if(n>=1&&n<=8)
-    select(n-1);
-  }
- });
-
-
-addEventListener(
- "keyup",
- e=>keys[e.code]=false
-);
-
-
-function collides(p){
-
- const minX=Math.floor(
-  p.x-RADIUS
- );
-
- const maxX=Math.floor(
-  p.x+RADIUS
- );
-
- const minY=Math.floor(p.y);
-
- const maxY=Math.floor(
-  p.y+PLAYER_HEIGHT
- );
-
- const minZ=Math.floor(
-  p.z-RADIUS
- );
-
- const maxZ=Math.floor(
-  p.z+RADIUS
- );
-
-
- for(let x=minX;x<=maxX;x++)
- for(let y=minY;y<=maxY;y++)
- for(let z=minZ;z<=maxZ;z++){
-
-  const b=getBlock(x,y,z);
-
-  if(
-   b &&
-   b!=="water" &&
-   b!=="leaves"
-  ){
-
-   if(
-    p.x+RADIUS>x &&
-    p.x-RADIUS<x+1 &&
-    p.y+PLAYER_HEIGHT>y &&
-    p.y<y+1 &&
-    p.z+RADIUS>z &&
-    p.z-RADIUS<z+1
-   )
-    return true;
-  }
- }
-
- return false;
-}
-
-
-function updatePlayer(dt){
-
- if(dead)return;
-
- const p=controls.getObject();
-
- let dx=0,dz=0;
-
- if(keys.KeyW)dz-=1;
- if(keys.KeyS)dz+=1;
- if(keys.KeyA)dx-=1;
- if(keys.KeyD)dx+=1;
-
- const len=Math.hypot(dx,dz);
-
- if(len){
-  dx/=len;
-  dz/=len;
- }
-
- const speed=
-  keys.ShiftLeft?
-  8:
-  5;
-
-
- const old=p.position.clone();
-
- controls.moveRight(
-  dx*speed*dt
- );
-
- controls.moveForward(
-  -dz*speed*dt
- );
-
-
- if(collides(p.position)){
-  p.position.x=old.x;
-  p.position.z=old.z;
- }
-
-
- if(keys.Space&&grounded){
-
-  velocityY=8;
-  grounded=false;
- }
-
-
- velocityY-=22*dt;
-
- p.position.y+=
-  velocityY*dt;
-
-
- if(collides(p.position)){
-
-  if(velocityY<0)
-   grounded=true;
-
-  p.position.y=
-   Math.floor(p.position.y)+.001;
-
-  velocityY=0;
- }
-
-
- if(p.position.y<-20)
-  damage(100, "fall");
-
-
- updateSurvival(dt);
-}
-
-
-// ============================================================
-// SURVIVAL
-// ============================================================
-
-let hungerTimer=0;
-
-function updateSurvival(dt){
-
- hungerTimer+=dt;
-
- if(hungerTimer>8){
-
-  hungerTimer=0;
-
-  hunger=Math.max(
-   0,
-   hunger-1
-  );
-
-  if(hunger===0)
-   damage(1,"starvation");
- }
-
-
- updateHUD();
-}
-
-
-function damage(amount,reason){
-
- if(dead)return;
-
- health-=amount;
-
- if(health<=0)
-  die();
-
- updateHUD();
-}
-
-
-function die(){
-
- dead=true;
-
- document.getElementById(
-  "death"
- ).style.display="flex";
-
- controls.unlock();
-}
-
-
-function respawn(){
-
- health=20;
- hunger=20;
- dead=false;
-
- controls.getObject()
-  .position.set(0,16,0);
-
- velocityY=0;
-
- document.getElementById(
-  "death"
- ).style.display="none";
-
- controls.lock();
-
- updateHUD();
-}
-
-
-function eatFood(){
-
- if(items.apple>0){
-
-  items.apple--;
-
-  hunger=Math.min(
-   20,
-   hunger+4
-  );
-
-  updateInventory();
-  updateHUD();
-
- }else if(items.cooked_meat>0){
-
-  items.cooked_meat--;
-
-  hunger=Math.min(
-   20,
-   hunger+7
-  );
-
-  updateInventory();
-  updateHUD();
- }
-}
-
-
-// ============================================================
-// MINING
-// ============================================================
-
-const raycaster=new THREE.Raycaster();
-const center=new THREE.Vector2(0,0);
-
-
-function target(){
-
- raycaster.setFromCamera(
-  center,
-  camera
- );
-
- const hits=
-  raycaster.intersectObjects(
-   [...meshes.values()]
-  );
-
- if(!hits.length)return null;
-
- if(hits[0].distance>7)return null;
-
- return hits[0];
-}
-
-
-addEventListener(
- "mousedown",
- e=>{
-
-  if(!controls.isLocked)return;
-
-  const hit=target();
-
-  if(!hit)return;
-
-  const d=hit.object.userData;
-
-
-  if(e.button===0){
-
-   // Attack mobs first
-   const mobHit=findMob();
-
-   if(mobHit){
-    attackMob(mobHit);
-    return;
-   }
-
-
-   if(d.y===0)return;
-
-   mine(d.x,d.y,d.z,d.type);
-  }
-
-
-  if(e.button===2){
-
-   const n=hit.face.normal;
-
-   const x=d.x+Math.round(n.x);
-   const y=d.y+Math.round(n.y);
-   const z=d.z+Math.round(n.z);
-
-   if(!getBlock(x,y,z)){
-
-    const type=
-     hotbarItems[selected];
-
-    if(items[type]>0){
-
-     setBlock(
-      x,y,z,
-      itemToBlock(type)
-     );
-
-     items[type]--;
-
-     rebuild();
-     updateInventory();
-    }
-   }
-  }
- });
-
-
-addEventListener(
- "contextmenu",
- e=>e.preventDefault()
-);
-
-
-function mine(x,y,z,type){
-
- const hard=BLOCKS[type].hard;
-
- // basic tool bonus
- let speed=1;
-
- if(items.pickaxe>0 &&
-    [
-     "stone",
-     "coal_ore",
-     "iron_ore",
-     "gold_ore",
-     "diamond_ore",
-     "emerald_ore"
-    ].includes(type)
- ){
-  speed=3;
- }
-
- removeBlock(x,y,z);
-
- giveDrop(type);
-
- xp+=
-  type.includes("ore")?
-  3:
-  1;
-
- rebuild();
- updateInventory();
- updateHUD();
-}
-
-
-function giveDrop(type){
-
- const drops={
-  grass:"grass",
-  dirt:"dirt",
-  stone:"stone",
-  sand:"sand",
-  wood:"wood",
-  leaves:"leaves",
-  coal_ore:"coal",
-  iron_ore:"iron_ore",
-  gold_ore:"gold_ore",
-  diamond_ore:"diamond_ore",
-  emerald_ore:"emerald_ore",
-  glass:"glass",
-  torch:"torch"
- };
-
- const item=drops[type];
-
- if(item)
-  items[item]++;
-}
-
-
-function itemToBlock(item){
-
- if(item==="coal")return "coal_ore";
- if(item==="iron_ore")return "iron_ore";
- if(item==="gold_ore")return "gold_ore";
- if(item==="diamond_ore")return "diamond_ore";
- if(item==="emerald_ore")return "emerald_ore";
-
- return item;
-}
-
-
-// ============================================================
-// MOBS
-// ============================================================
-
-const mobs=[];
-
-
-function spawnMob(type,x,y,z){
-
- const color=
-  type==="zombie"?
-  0x339944:
-  0xaa7744;
-
- const m=new THREE.Mesh(
-  new THREE.BoxGeometry(
-   .7,1.6,.7
-  ),
-  new THREE.MeshLambertMaterial({
-   color
-  })
- );
-
- m.position.set(
-  x+.5,
-  y+0.8,
-  z+.5
- );
-
- m.userData={
-  mob:true,
-  type,
-  health:
-   type==="zombie"?10:5
- };
-
- scene.add(m);
-
- mobs.push(m);
-}
-
-
-function generateMobs(){
-
- for(let i=0;i<12;i++){
-
-  const x=
-   Math.floor(
-    Math.random()*40-20
-   );
-
-  const z=
-   Math.floor(
-    Math.random()*40-20
-   );
-
-  const y=
-   heightAt(x,z)+1;
-
-  spawnMob(
-   Math.random()>.5?
-   "zombie":
-   "animal",
-   x,y,z
-  );
- }
-}
-
-
-function findMob(){
-
- raycaster.setFromCamera(
-  center,
-  camera
- );
-
- const hits=
-  raycaster.intersectObjects(
-   mobs
-  );
-
- if(!hits.length)return null;
-
- if(hits[0].distance>5)return null;
-
- return hits[0].object;
-}
-
-
-function attackMob(mob){
-
- const damageAmount=
-  items.sword>0?5:1;
-
- mob.userData.health-=
-  damageAmount;
-
- if(
-  mob.userData.health<=0
- ){
-
-  if(
-   mob.userData.type==="animal"
-  )
-   items.raw_meat++;
-
-  else
-   items.coal++;
-
-  xp+=5;
-
-  scene.remove(mob);
-
-  const i=mobs.indexOf(mob);
-
-  if(i>=0)
-   mobs.splice(i,1);
-
-  updateInventory();
-  updateHUD();
-
- }else{
-
-  mob.userData.hit=1;
- }
-}
-
-
-let mobTimer=0;
-
-
-function updateMobs(dt){
-
- if(dead)return;
-
- const player=
-  controls.getObject()
-   .position;
-
-
- for(const mob of mobs){
-
-  const p=mob.position;
-
-  const dx=
-   player.x-p.x;
-
-  const dz=
-   player.z-p.z;
-
-  const dist=
-   Math.hypot(dx,dz);
-
-
-  if(
-   mob.userData.type==="zombie" &&
-   dist<18
-  ){
-
-   if(dist>1.5){
-
-    p.x+=
-     dx/dist*
-     dt*1.2;
-
-    p.z+=
-     dz/dist*
-     dt*1.2;
-
-   }else{
-
-    mob.userData.attack=
-     (mob.userData.attack||0)+dt;
-
-    if(
-     mob.userData.attack>1.5
-    ){
-
-     mob.userData.attack=0;
-
-     damage(2,"zombie");
-    }
-   }
-  }
- }
-
-
- mobTimer+=dt;
-
- if(
-  mobTimer>12 &&
-  mobs.length<20
- ){
-
-  mobTimer=0;
-
-  const p=
-   controls.getObject()
-    .position;
-
-  spawnMob(
-   Math.random()>.55?
-   "zombie":
-   "animal",
-
-   Math.floor(
-    p.x+
-    Math.random()*30-15
-   ),
-
-   10,
-
-   Math.floor(
-    p.z+
-    Math.random()*30-15
-   )
-  );
- }
-}
-
-
-// ============================================================
-// INVENTORY
-// ============================================================
-
-let inventoryOpen=false;
-
-
-function toggleInventory(){
-
- inventoryOpen=!inventoryOpen;
-
- document.getElementById(
-  "inventory"
- ).style.display=
-  inventoryOpen?
-  "block":
-  "none";
-
- if(inventoryOpen)
-  controls.unlock();
- else
-  controls.lock();
-
- updateInventory();
-}
-
-
-function updateInventory(){
-
- const el=
-  document.getElementById("items");
-
- el.innerHTML="";
-
- for(const [name,count] of
-     Object.entries(items)){
-
-  if(count<=0)continue;
-
-  const div=
-   document.createElement("div");
-
-  div.className="item";
-
-  div.textContent=
-   `${name}: ${count}`;
-
-  el.appendChild(div);
- }
-}
-
-
-// ============================================================
-// CRAFTING
-// ============================================================
-
-function craft(type){
-
- if(type==="planks"){
-
-  if(items.wood>=1){
-
-   items.wood--;
-   items.planks+=4;
-  }
-
- }else if(type==="stick"){
-
-  if(items.planks>=2){
-
-   items.planks-=2;
-   items.stick+=4;
-  }
-
- }else if(type==="pickaxe"){
-
-  if(
-   items.stone>=3 &&
-   items.stick>=2
-  ){
-
-   items.stone-=3;
-   items.stick-=2;
-   items.pickaxe++;
-  }
-
- }else if(type==="sword"){
-
-  if(
-   items.stone>=2 &&
-   items.stick>=1
-  ){
-
-   items.stone-=2;
-   items.stick--;
-   items.sword++;
-  }
-
- }else if(type==="torch"){
-
-  if(
-   items.coal>=1 &&
-   items.stick>=1
-  ){
-
-   items.coal--;
-   items.stick--;
-   items.torch+=4;
-  }
- }
-
- updateInventory();
-}
-
-
-// ============================================================
-// HOTBAR
-// ============================================================
-
-const hotbarItems=[
- "grass",
- "dirt",
- "stone",
- "wood",
- "sand",
- "glass",
- "torch",
- "planks"
-];
-
-let selected=0;
-
-
-function select(n){
-
- selected=n;
-
- renderHotbar();
-}
-
-
-function renderHotbar(){
-
- const bar=
-  document.getElementById(
-   "hotbar"
-  );
-
- bar.innerHTML="";
-
- hotbarItems.forEach(
-  (item,i)=>{
-
-   const s=
-    document.createElement("div");
-
-   s.className=
-    "slot"+
-    (i===selected?
-     " selected":"");
-
-   const n=
-    document.createElement("span");
-
-   n.textContent=i+1;
-
-   const icon=
-    document.createElement("div");
-
-   icon.className="icon";
-
-   const block=
-    BLOCKS[item];
-
-   if(block){
-
-    icon.style.background=
-     "#"+
-     block.color
-      .toString(16)
-      .padStart(6,"0");
-   }
-
-   s.appendChild(n);
-   s.appendChild(icon);
-
-   const amount=
-    document.createElement("small");
-
-   amount.style.position="absolute";
-   amount.style.right="4px";
-   amount.style.bottom="2px";
-
-   amount.textContent=
-    items[item]||0;
-
-   s.appendChild(amount);
-
-   bar.appendChild(s);
-  }
-}
-
-
-// ============================================================
-// HUD
-// ============================================================
-
-function updateHUD(){
-
- document.getElementById(
-  "hpText"
- ).textContent=
-  Math.max(0,health);
-
- document.getElementById(
-  "foodText"
- ).textContent=
-  hunger;
-
- document.getElementById(
-  "xp"
- ).textContent=
-  xp;
-
- document.getElementById(
-  "healthFill"
- ).style.width=
-  `${health/20*100}%`;
-
- document.getElementById(
-  "foodFill"
- ).style.width=
-  `${hunger/20*100}%`;
-
- renderHotbar();
-}
-
-
-// ============================================================
-// SAVE / LOAD
-// ============================================================
-
-function saveGame(){
-
- const data={
-  world:[...world],
-  items,
-  health,
-  hunger,
-  xp,
-  position:[
-   controls.getObject()
-    .position.x,
-   controls.getObject()
-    .position.y,
-   controls.getObject()
-    .position.z
-  ]
- };
-
- localStorage.setItem(
-  "voxelSurvival",
-  JSON.stringify(data)
- );
-}
-
-
-function loadGame(){
-
- const raw=
-  localStorage.getItem(
-   "voxelSurvival"
-  );
-
- if(!raw)return false;
-
- try{
-
-  const data=
-   JSON.parse(raw);
-
-  world.clear();
-
-  for(const [k,v] of data.world)
-   world.set(k,v);
-
-  Object.assign(
-   items,
-   data.items
-  );
-
-  health=data.health;
-  hunger=data.hunger;
-  xp=data.xp;
-
-  controls.getObject()
-   .position.set(
-    ...data.position
-   );
-
-  return true;
-
- }catch(e){
-
-  return false;
- }
-}
-
-
-setInterval(
- saveGame,
- 10000
-);
-
-
-// ============================================================
-// START
-// ============================================================
-
-generate();
-
-if(!loadGame()){
-
- controls.getObject()
-  .position.set(
-   0,
-   16,
-   0
-  );
-}
-
-rebuild();
-
-generateMobs();
-
-renderHotbar();
-updateHUD();
-
-
-document.getElementById(
- "play"
-).onclick=()=>{
-
- controls.lock();
-
- document.getElementById(
-  "start"
- ).style.display="none";
-};
-
-
-controls.addEventListener(
- "unlock",
- ()=>{
-
-  if(!inventoryOpen &&
-     !dead){
-
-   document.getElementById(
-    "start"
-   ).style.display="flex";
-  }
- });
-
-
-// ============================================================
-// DAY / NIGHT
-// ============================================================
-
-let worldTime=.25;
-
-
-function dayNight(dt){
-
- worldTime+=dt*.008;
-
- if(worldTime>1)
-  worldTime-=1;
-
- const a=
-  worldTime*
-  Math.PI*2;
-
- sun.position.set(
-  Math.cos(a)*50,
-  Math.sin(a)*50,
-  20
- );
-
- const light=
-  Math.max(
-   .08,
-   Math.sin(a)*.5+.5
-  );
-
- sun.intensity=
-  light*2;
-
- ambient.intensity=
-  .35+
-  light*1.1;
-
- const sky=new THREE.Color();
-
- sky.setHSL(
-  .56,
-  .55,
-  .25+
-  light*.45
- );
-
- scene.background=sky;
- scene.fog.color=sky;
-}
-
-
-// ============================================================
-// RESIZE
-// ============================================================
-
-addEventListener(
- "resize",
- ()=>{
-
-  camera.aspect=
-   innerWidth/innerHeight;
-
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(
-   innerWidth,
-   innerHeight
-  );
- });
-
-
-// ============================================================
-// GAME LOOP
-// ============================================================
-
-let last=performance.now();
-
-
-function loop(now){
-
- requestAnimationFrame(loop);
-
- const dt=
-  Math.min(
-   (now-last)/1000,
-   .05
-  );
-
- last=now;
-
- updatePlayer(dt);
- updateMobs(dt);
- dayNight(dt);
-
- renderer.render(
-  scene,
-  camera
- );
-}
-
-
-loop(performance.now());
-
-</script>
-</body>
-</html>
+    <!-- Click to lock pointer screen -->
+    <div id="blocker">
+        <div id="instructions-popup">
+            <strong>CLICK ANYWHERE TO PLAY</strong><br><br>
+            W, A, S, D = Move | Space = Jump<br>
+            Left Click = Mine Block | Right Click = Place Block<br>
+            Keys 1, 2, 3 = Select Block<br>
+            E = Eat Apple | R = Sleep | C = Craft Stone
+        </div>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="canvas-container"></div>
+    
+    <!-- HUD Layer -->
+    <div id="hud">
+        <div class="stat-bar">♥ HP: <span id="hp-val">100</span> | 🍖 Hunger: <span id="hunger-val">100</span> | ⚡ Energy: <span id="energy-val">100</span></div>
+        <div style="margin-top: 8px;">Selected Block: <span id="selected-val" class="highlight">GRASS</span></div>
+        <div style="margin-top: 4px;">Inventory: 
+            Grass(<span id="inv-grass">10</span>) 
+            Stone(<span id="inv-stone">5</span>) 
+            Wood(<span id="inv-wood">5</span>) 
+            Apple(<span id="inv-apple">3</span>)
+        </div>
+    </div>
+
+    <div id="instructions">
+        [1-3] Swap Block | [E] Eat Apple | [R] Sleep | [C] Craft
+    </div>
+
+    <!-- ─── JAVASCRIPT GAME LOGIC ──────────────────────────────────── -->
+    <script>
+        // Game Engine Variables
+        let scene, camera, renderer, clock;
+        let player = {
+            position: new THREE.Vector3(50, 1.6, 50),
+            velocity: new THREE.Vector3(),
+            canJump: true,
+            health: 100,
+            hunger: 100,
+            energy: 100
+        };
+
+        // Input & Controls States
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let isLocked = false;
+        
+        // Gameplay Variables
+        const MAP_SIZE = 100;
+        let blocks = []; // Holds references to block meshes for collision/raycasting
+        let mobs = [];
+        
+        let inventory = { Grass: 10, Stone: 5, Wood: 5, Apple: 3 };
+        const blockTypes = ["Grass", "Stone", "Wood"];
+        let currentBlockIndex = 0;
+
+        // Colors mapping
+        const blockColors = { Grass: 0x557a2b, Stone: 0x777777, Wood: 0x8a5a36 };
+
+        // Raycasting for mining/placing
+        let raycaster = new THREE.Raycaster();
+        let mouseCenter = new THREE.Vector2(0, 0); // Always center screen
+
+        // Setup DOM Hooks
+        const blocker = document.getElementById('blocker');
+        const hpVal = document.getElementById('hp-val');
+        const hungerVal = document.getElementById('hunger-val');
+        const energyVal = document.getElementById('energy-val');
+        const selectedVal = document.getElementById('selected-val');
+        const invGrass = document.getElementById('inv-grass');
+        const invStone = document.getElementById('inv-stone');
+        const invWood = document.getElementById('inv-wood');
+        const invApple = document.getElementById('inv-apple');
+
+        init();
+        animate();
+
+        function init() {
+            // 1. Scene, Camera, Renderer Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.copy(player.position);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            // 2. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(20, 40, 20);
+            scene.add(dirLight);
+
+            // 3. World Generation (100x100 Base Floor)
+            const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
+            const floorMat = new THREE.MeshLambertMaterial({ color: 0x3a5f0b });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(MAP_SIZE/2, 0, MAP_SIZE/2);
+            scene.add(floor);
+
+            // Spawn some initial structures/resources across the 100x100 grid
+            for(let i=0; i<40; i++) {
+                let rx = Math.floor(Math.random() * (MAP_SIZE - 10)) + 5;
+                let rz = Math.floor(Math.random() * (MAP_SIZE - 10)) + 5;
+                let type = Math.random() > 0.5 ? "Wood" : "Stone";
+                spawnBlock(rx, 0.5, rz, type);
+                if (type === "Wood") spawnBlock(rx, 1.5, rz, "Wood"); // Make trees taller
+            }
+
+            // 4. Mobs Setup (Zombies)
+            for(let i=0; i<6; i++) {
+                let rx = Math.floor(Math.random() * 80) + 10;
+                let rz = Math.floor(Math.random() * 80) + 10;
+                spawnMob(rx, rz);
+            }
+
+            // 5. Browser Window & Pointer Lock Event Handling
+            window.addEventListener('resize', onWindowResize);
+            blocker.addEventListener('click', () => {
+                blocker.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === blocker) {
+                    blocker.style.display = 'none';
+                    isLocked = true;
+                } else {
+                    blocker.style.display = 'flex';
+                    isLocked = false;
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isLocked) return;
+                // Rotate camera based on mouse movement
+                camera.rotation.y -= e.movementX * 0.0025;
+                camera.rotation.x -= e.movementY * 0.0025;
+                // Clamp looking straight up or down
+                camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
+            });
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            document.addEventListener('mousedown', onMouseDown);
+
+            // Setup proper initial Euler rotation order for FPS look controls
+            camera.rotation.order = "YXZ";
+            updateUI();
+        }
+
+        // Helper function to build blocks into existence
+        function spawnBlock(x, y, z, type) {
+            const geo = new THREE.BoxGeometry(1, 1, 1);
+            const mat = new THREE.MeshLambertMaterial({ color: blockColors[type] });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.userData = { type: type };
+            scene.add(mesh);
+            blocks.push(mesh);
+        }
+
+        function spawnMob(x, z) {
+            const geo = new THREE.BoxGeometry(1, 2, 1);
+            const mat = new THREE.MeshLambertMaterial({ color: 0xff00ff }); // Magenta

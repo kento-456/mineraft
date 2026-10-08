@@ -4,226 +4,925 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minecraft 2.0</title>
+<title>2D Minecraft</title>
 
 <style>
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
+* {
+    box-sizing: border-box;
+}
 
-    body {
-        overflow: hidden;
-        background: #87ceeb;
-        font-family: Arial, sans-serif;
-    }
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #87ceeb;
+    font-family: Arial, sans-serif;
+}
 
-    canvas {
-        display: block;
-        image-rendering: pixelated;
-    }
+canvas {
+    display: block;
+    image-rendering: pixelated;
+}
 
-    #ui {
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        color: white;
-        background: rgba(0,0,0,.55);
-        padding: 10px 14px;
-        border-radius: 8px;
-        font-size: 15px;
-        z-index: 10;
-    }
+#menu {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
 
-    #crosshair {
-        position: fixed;
-        left: 50%;
-        top: 50%;
-        width: 20px;
-        height: 20px;
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-        z-index: 5;
-    }
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    #crosshair::before,
-    #crosshair::after {
-        content: "";
-        position: absolute;
-        background: white;
-        box-shadow: 0 0 2px black;
-    }
+    background:
+        linear-gradient(
+            #56b4e9,
+            #82c95b
+        );
+}
 
-    #crosshair::before {
-        width: 2px;
-        height: 20px;
-        left: 9px;
-    }
+.menuBox {
+    width: 380px;
+    padding: 30px;
 
-    #crosshair::after {
-        width: 20px;
-        height: 2px;
-        top: 9px;
-    }
+    text-align: center;
+
+    background: #222;
+    color: white;
+
+    border: 5px solid #111;
+    box-shadow: 0 10px 30px #0008;
+}
+
+.menuBox h1 {
+    margin: 0 0 5px;
+
+    font-size: 48px;
+
+    color: #65c74b;
+
+    text-shadow:
+        4px 4px #111;
+}
+
+.menuBox input {
+    width: 100%;
+    padding: 13px;
+
+    margin-top: 20px;
+
+    background: #111;
+    color: white;
+
+    border: 3px solid #555;
+
+    font-size: 16px;
+}
+
+.menuBox button {
+    width: 100%;
+    padding: 15px;
+
+    margin-top: 12px;
+
+    background: #58a83b;
+    color: white;
+
+    border: 3px solid #222;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+.menuBox button:hover {
+    background: #70c84d;
+}
+
+#gameUI {
+    display: none;
+}
+
+#hud {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+
+    z-index: 5;
+
+    padding: 10px;
+
+    color: white;
+
+    background: #0009;
+
+    border-radius: 5px;
+
+    line-height: 1.6;
+
+    user-select: none;
+}
+
+#help {
+    font-size: 12px;
+    color: #ddd;
+}
+
+#message {
+    position: fixed;
+
+    top: 48%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    color: white;
+
+    font-size: 24px;
+    font-weight: bold;
+
+    text-shadow: 3px 3px #000;
+
+    pointer-events: none;
+
+    z-index: 6;
+}
+
+#hotbar {
+    position: fixed;
+
+    bottom: 15px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    display: flex;
+
+    gap: 5px;
+
+    z-index: 5;
+}
+
+.slot {
+    width: 55px;
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+
+    background: #222d;
+    border: 3px solid #555;
+
+    color: white;
+
+    font-size: 25px;
+}
+
+.slot.selected {
+    border-color: white;
+    box-shadow: 0 0 0 2px #aaa;
+}
+
+.slot small {
+    position: absolute;
+
+    right: 4px;
+    bottom: 2px;
+
+    font-size: 11px;
+}
+
+#crosshair {
+    position: fixed;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    color: white;
+
+    font-size: 25px;
+
+    text-shadow: 2px 2px #000;
+
+    pointer-events: none;
+
+    z-index: 4;
+}
 </style>
 </head>
 
 <body>
 
-<div id="ui">
-    <b>Minecraft 2.0</b><br>
-    A / D = Move<br>
-    SPACE = Jump<br>
-    Left Click = Break Block<br>
-    Right Click = Place Block
+<!-- =========================
+     START MENU
+========================= -->
+
+<div id="menu">
+
+    <div class="menuBox">
+
+        <h1>2D MINECRAFT</h1>
+
+        <p>JavaScript Edition</p>
+
+        <input
+            id="worldName"
+            value="My World"
+            maxlength="20"
+            placeholder="World name"
+        >
+
+        <button onclick="startGame()">
+            CREATE WORLD
+        </button>
+
+        <p id="error"></p>
+
+    </div>
+
 </div>
 
-<div id="crosshair"></div>
 
-<canvas id="game"></canvas>
+<!-- =========================
+     GAME UI
+========================= -->
+
+<div id="gameUI">
+
+    <canvas id="canvas"></canvas>
+
+    <div id="crosshair">+</div>
+
+    <div id="hud">
+
+        🌎 <b id="worldTitle">
+            My World
+        </b>
+
+        <br>
+
+        ❤️ Health:
+        <span id="health">100</span>
+
+        <br>
+
+        🍗 Hunger:
+        <span id="hunger">100</span>
+
+        <br>
+
+        💎 Diamonds:
+        <span id="diamonds">0</span>
+
+        <br>
+
+        🍎 Apples:
+        <span id="apples">3</span>
+
+        <br>
+
+        🥩 Meat:
+        <span id="meat">0</span>
+
+        <div id="help">
+
+            A / D = Move<br>
+            W / Space = Jump<br>
+            Left Click = Mine<br>
+            Right Click = Place<br>
+            E = Eat<br>
+            F = Sleep<br>
+            1-6 = Select block
+
+        </div>
+
+    </div>
+
+    <div id="message"></div>
+
+    <div id="hotbar">
+
+        <div class="slot selected" data-slot="1">
+            🟩
+            <small>1</small>
+        </div>
+
+        <div class="slot" data-slot="2">
+            🟫
+            <small>2</small>
+        </div>
+
+        <div class="slot" data-slot="3">
+            🪨
+            <small>3</small>
+        </div>
+
+        <div class="slot" data-slot="4">
+            🪵
+            <small>4</small>
+        </div>
+
+        <div class="slot" data-slot="5">
+            💎
+            <small>5</small>
+        </div>
+
+        <div class="slot" data-slot="6">
+            🛏️
+            <small>6</small>
+        </div>
+
+    </div>
+
+</div>
+
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+/* =====================================================
+   CANVAS
+===================================================== */
 
-// =============================
-// WORLD SETTINGS
-// =============================
+const canvas =
+    document.getElementById("canvas");
 
-const TILE = 40;
+const ctx =
+    canvas.getContext("2d");
 
-const WORLD_WIDTH = 100;
-const WORLD_HEIGHT = 25;
+ctx.imageSmoothingEnabled = false;
 
-const world = [];
 
-// Block types
+/* =====================================================
+   SETTINGS
+===================================================== */
+
+const TILE = 32;
+
+const WORLD_WIDTH = 180;
+const WORLD_HEIGHT = 50;
+
+const GRAVITY = 0.45;
+
+const JUMP_POWER = -10;
+
+const MOVE_SPEED = 4;
+
+
+/* =====================================================
+   BLOCKS
+===================================================== */
+
 const AIR = 0;
 const GRASS = 1;
 const DIRT = 2;
 const STONE = 3;
 const WOOD = 4;
+const LEAVES = 5;
+const DIAMOND = 6;
+const COAL = 7;
+const BED = 8;
+const SAND = 9;
 
-// =============================
-// GENERATE WORLD
-// =============================
 
-for (let y = 0; y < WORLD_HEIGHT; y++) {
-    world[y] = [];
+/* =====================================================
+   WORLD
+===================================================== */
 
-    for (let x = 0; x < WORLD_WIDTH; x++) {
-        world[y][x] = AIR;
-    }
-}
+let world = [];
 
-// Ground height
-const groundHeights = [];
+let animals = [];
 
-for (let x = 0; x < WORLD_WIDTH; x++) {
+let particles = [];
 
-    // Small hills
-    const height =
-        12 +
-        Math.floor(Math.sin(x * 0.15) * 2) +
-        Math.floor(Math.sin(x * 0.05) * 2);
-
-    groundHeights[x] = height;
-
-    for (let y = height; y < WORLD_HEIGHT; y++) {
-
-        if (y === height) {
-            world[y][x] = GRASS;
-        }
-        else if (y < height + 4) {
-            world[y][x] = DIRT;
-        }
-        else {
-            world[y][x] = STONE;
-        }
-    }
-}
-
-// =============================
-// PLAYER
-// =============================
-
-const player = {
-    x: 10 * TILE,
-    y: 5 * TILE,
-
-    width: 28,
-    height: 38,
-
-    vx: 0,
-    vy: 0,
-
-    speed: 5,
-    jumpPower: 12,
-
-    onGround: false
-};
-
-const keys = {};
-
-document.addEventListener("keydown", e => {
-    keys[e.key.toLowerCase()] = true;
-
-    if (e.code === "Space") {
-        e.preventDefault();
-
-        if (player.onGround) {
-            player.vy = -player.jumpPower;
-            player.onGround = false;
-        }
-    }
-});
-
-document.addEventListener("keyup", e => {
-    keys[e.key.toLowerCase()] = false;
-});
-
-// =============================
-// CAMERA
-// =============================
+let gameRunning = false;
 
 let cameraX = 0;
 let cameraY = 0;
 
-// =============================
-// COLLISION
-// =============================
 
-function isSolid(tx, ty) {
+/* =====================================================
+   PLAYER
+===================================================== */
 
-    if (tx < 0 || tx >= WORLD_WIDTH)
+const player = {
+
+    x: 10,
+    y: 5,
+
+    width: 24,
+    height: 44,
+
+    vx: 0,
+    vy: 0,
+
+    grounded: false,
+
+    health: 100,
+    hunger: 100,
+
+    diamonds: 0,
+    apples: 3,
+    meat: 0,
+
+    sleeping: false
+
+};
+
+
+/* =====================================================
+   INPUT
+===================================================== */
+
+const keys = {};
+
+let selectedBlock = GRASS;
+
+let mouseX = 0;
+let mouseY = 0;
+
+
+document.addEventListener(
+    "keydown",
+    e => {
+
+        keys[e.code] = true;
+
+        if (
+            e.code === "Space"
+        ) {
+            e.preventDefault();
+        }
+
+
+        if (
+            e.code === "KeyE"
+        ) {
+            eatFood();
+        }
+
+
+        if (
+            e.code === "KeyF"
+        ) {
+            sleep();
+        }
+
+
+        if (
+            e.key >= "1" &&
+            e.key <= "6"
+        ) {
+
+            selectBlock(
+                Number(e.key)
+            );
+        }
+    }
+);
+
+
+document.addEventListener(
+    "keyup",
+    e => {
+
+        keys[e.code] = false;
+    }
+);
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+function resize() {
+
+    canvas.width =
+        window.innerWidth;
+
+    canvas.height =
+        window.innerHeight;
+}
+
+window.addEventListener(
+    "resize",
+    resize
+);
+
+resize();
+
+
+/* =====================================================
+   WORLD GENERATION
+===================================================== */
+
+function generateWorld() {
+
+    world = [];
+
+    for (
+        let y = 0;
+        y < WORLD_HEIGHT;
+        y++
+    ) {
+
+        world[y] = [];
+
+        for (
+            let x = 0;
+            x < WORLD_WIDTH;
+            x++
+        ) {
+
+            world[y][x] = AIR;
+        }
+    }
+
+
+    /* Ground */
+
+    let groundHeights = [];
+
+    let height = 28;
+
+
+    for (
+        let x = 0;
+        x < WORLD_WIDTH;
+        x++
+    ) {
+
+        height +=
+            Math.floor(
+                Math.random() * 3
+            ) - 1;
+
+        height =
+            Math.max(
+                20,
+                Math.min(
+                    31,
+                    height
+                )
+            );
+
+        groundHeights[x] =
+            height;
+
+
+        for (
+            let y = height;
+            y < WORLD_HEIGHT;
+            y++
+        ) {
+
+            if (
+                y === height
+            ) {
+
+                world[y][x] =
+                    GRASS;
+
+            } else if (
+                y < height + 4
+            ) {
+
+                world[y][x] =
+                    DIRT;
+
+            } else {
+
+                world[y][x] =
+                    STONE;
+            }
+        }
+    }
+
+
+    /* Underground ores */
+
+    for (
+        let y = 35;
+        y < WORLD_HEIGHT - 2;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < WORLD_WIDTH;
+            x++
+        ) {
+
+            if (
+                world[y][x] !== STONE
+            ) {
+                continue;
+            }
+
+
+            if (
+                Math.random() < 0.025
+            ) {
+
+                world[y][x] =
+                    DIAMOND;
+
+            } else if (
+                Math.random() < 0.06
+            ) {
+
+                world[y][x] =
+                    COAL;
+            }
+        }
+    }
+
+
+    /* Trees */
+
+    for (
+        let x = 5;
+        x < WORLD_WIDTH - 5;
+        x++
+    ) {
+
+        if (
+            Math.random() < 0.06
+        ) {
+
+            createTree(
+                x,
+                groundHeights[x]
+            );
+        }
+    }
+
+
+    /* Bed */
+
+    const bedX = 15;
+
+    const bedY =
+        groundHeights[bedX] - 1;
+
+    world[bedY][bedX] =
+        BED;
+
+
+    /* Spawn area */
+
+    const spawnX = 10;
+
+    player.x =
+        spawnX * TILE;
+
+    player.y =
+        (groundHeights[spawnX] - 3)
+        * TILE;
+
+
+    /* Animals */
+
+    spawnAnimals();
+}
+
+
+/* =====================================================
+   TREE
+===================================================== */
+
+function createTree(
+    x,
+    groundY
+) {
+
+    const trunkHeight = 4;
+
+
+    for (
+        let y = groundY - 1;
+        y >= groundY - trunkHeight;
+        y--
+    ) {
+
+        if (
+            y >= 0
+        ) {
+
+            world[y][x] =
+                WOOD;
+        }
+    }
+
+
+    const top =
+        groundY - trunkHeight;
+
+
+    for (
+        let y = top - 2;
+        y <= top + 1;
+        y++
+    ) {
+
+        for (
+            let dx = -2;
+            dx <= 2;
+            dx++
+        ) {
+
+            if (
+                Math.abs(dx) <= 1 ||
+                y === top - 2
+            ) {
+
+                if (
+                    x + dx >= 0 &&
+                    x + dx < WORLD_WIDTH &&
+                    y >= 0
+                ) {
+
+                    world[y][x + dx] =
+                        LEAVES;
+                }
+            }
+        }
+    }
+}
+
+
+/* =====================================================
+   ANIMALS
+===================================================== */
+
+function spawnAnimals() {
+
+    animals = [];
+
+
+    const types = [
+        "cow",
+        "cow",
+        "sheep",
+        "sheep",
+        "chicken",
+        "chicken",
+        "pig"
+    ];
+
+
+    for (
+        const type of types
+    ) {
+
+        const x =
+            Math.floor(
+                Math.random() *
+                (WORLD_WIDTH - 20)
+            ) + 10;
+
+
+        const ground =
+            findGround(x);
+
+
+        animals.push({
+
+            type: type,
+
+            x: x * TILE,
+
+            y:
+                (ground - 1)
+                * TILE,
+
+            vx:
+                Math.random() > .5
+                ? 0.5
+                : -0.5,
+
+            vy: 0,
+
+            health: 20,
+
+            timer:
+                Math.random() * 100
+
+        });
+    }
+}
+
+
+/* =====================================================
+   FIND GROUND
+===================================================== */
+
+function findGround(x) {
+
+    x =
+        Math.floor(x);
+
+
+    for (
+        let y = 0;
+        y < WORLD_HEIGHT;
+        y++
+    ) {
+
+        if (
+            world[y][x] !== AIR
+        ) {
+
+            return y;
+        }
+    }
+
+    return 25;
+}
+
+
+/* =====================================================
+   BLOCK SOLID
+===================================================== */
+
+function solidAt(
+    tx,
+    ty
+) {
+
+    if (
+        tx < 0 ||
+        tx >= WORLD_WIDTH ||
+        ty < 0
+    ) {
+
         return true;
+    }
 
-    if (ty < 0)
-        return false;
 
-    if (ty >= WORLD_HEIGHT)
+    if (
+        ty >= WORLD_HEIGHT
+    ) {
+
         return true;
+    }
+
 
     return world[ty][tx] !== AIR;
 }
 
 
-function collisionRect(x, y, width, height) {
+/* =====================================================
+   PLAYER COLLISION
+===================================================== */
 
-    const left = Math.floor(x / TILE);
-    const right = Math.floor((x + width - 0.001) / TILE);
+function collides(
+    x,
+    y
+) {
 
-    const top = Math.floor(y / TILE);
-    const bottom = Math.floor((y + height - 0.001) / TILE);
+    const left =
+        Math.floor(
+            x / TILE
+        );
 
-    for (let ty = top; ty <= bottom; ty++) {
-        for (let tx = left; tx <= right; tx++) {
+    const right =
+        Math.floor(
+            (x + player.width)
+            / TILE
+        );
 
-            if (isSolid(tx, ty)) {
+    const top =
+        Math.floor(
+            y / TILE
+        );
+
+    const bottom =
+        Math.floor(
+            (y + player.height)
+            / TILE
+        );
+
+
+    for (
+        let ty = top;
+        ty <= bottom;
+        ty++
+    ) {
+
+        for (
+            let tx = left;
+            tx <= right;
+            tx++
+        ) {
+
+            if (
+                solidAt(tx, ty)
+            ) {
+
                 return true;
             }
         }
@@ -232,422 +931,339 @@ function collisionRect(x, y, width, height) {
     return false;
 }
 
-// =============================
-// PHYSICS
-// =============================
+
+/* =====================================================
+   PLAYER
+===================================================== */
 
 function updatePlayer() {
 
-    // Movement
+    if (
+        player.sleeping
+    ) {
+
+        return;
+    }
+
+
+    /* Movement */
+
     player.vx = 0;
 
-    if (keys["a"] || keys["arrowleft"]) {
-        player.vx = -player.speed;
+
+    if (
+        keys["KeyA"] ||
+        keys["ArrowLeft"]
+    ) {
+
+        player.vx =
+            -MOVE_SPEED;
     }
 
-    if (keys["d"] || keys["arrowright"]) {
-        player.vx = player.speed;
+
+    if (
+        keys["KeyD"] ||
+        keys["ArrowRight"]
+    ) {
+
+        player.vx =
+            MOVE_SPEED;
     }
 
-    // Gravity
-    player.vy += 0.55;
 
-    // Maximum falling speed
-    if (player.vy > 15) {
-        player.vy = 15;
+    /* Jump */
+
+    if (
+        (
+            keys["KeyW"] ||
+            keys["Space"] ||
+            keys["ArrowUp"]
+        ) &&
+        player.grounded
+    ) {
+
+        player.vy =
+            JUMP_POWER;
+
+        player.grounded =
+            false;
     }
 
-    // ---------------------------------
-    // HORIZONTAL COLLISION
-    // ---------------------------------
 
-    player.x += player.vx;
+    /* Horizontal */
 
-    if (collisionRect(
-        player.x,
-        player.y,
-        player.width,
-        player.height
-    )) {
+    player.x +=
+        player.vx;
 
-        // Move back until we're outside the block
-        while (collisionRect(
+
+    if (
+        collides(
             player.x,
-            player.y,
-            player.width,
-            player.height
-        )) {
-            player.x -= Math.sign(player.vx || 1);
-        }
+            player.y
+        )
+    ) {
 
-        player.vx = 0;
+        while (
+            collides(
+                player.x,
+                player.y
+            )
+        ) {
+
+            player.x -=
+                Math.sign(
+                    player.vx
+                );
+        }
     }
 
-    // ---------------------------------
-    // VERTICAL COLLISION
-    // ---------------------------------
 
-    player.onGround = false;
+    /* Gravity */
 
-    player.y += player.vy;
+    player.vy +=
+        GRAVITY;
 
-    if (collisionRect(
-        player.x,
-        player.y,
-        player.width,
-        player.height
-    )) {
 
-        if (player.vy > 0) {
+    player.y +=
+        player.vy;
 
-            // Falling down
-            while (collisionRect(
-                player.x,
-                player.y,
-                player.width,
-                player.height
-            )) {
+
+    /* Vertical collision */
+
+    if (
+        collides(
+            player.x,
+            player.y
+        )
+    ) {
+
+        if (
+            player.vy > 0
+        ) {
+
+            while (
+                collides(
+                    player.x,
+                    player.y
+                )
+            ) {
+
                 player.y -= 1;
             }
 
-            player.onGround = true;
-        }
-        else if (player.vy < 0) {
+            player.grounded =
+                true;
 
-            // Hitting ceiling
-            while (collisionRect(
-                player.x,
-                player.y,
-                player.width,
-                player.height
-            )) {
+        } else {
+
+            while (
+                collides(
+                    player.x,
+                    player.y
+                )
+            ) {
+
                 player.y += 1;
             }
         }
 
-        player.vy = 0;
-    }
-
-    // Extra safety:
-    // Never allow the player to fall below the world.
-    if (player.y > WORLD_HEIGHT * TILE - player.height) {
-
-        player.y =
-            WORLD_HEIGHT * TILE -
-            player.height;
 
         player.vy = 0;
-        player.onGround = true;
     }
 
-    // Camera follows player
-    cameraX =
-        player.x -
-        canvas.width / 2 +
-        player.width / 2;
 
-    cameraY =
-        player.y -
-        canvas.height / 2;
+    /*
+       Extra safety:
+       player can NEVER fall below
+       the bottom of the world.
+    */
 
-    cameraX = Math.max(
-        0,
-        Math.min(
-            cameraX,
-            WORLD_WIDTH * TILE - canvas.width
-        )
-    );
+    const bottomLimit =
+        (WORLD_HEIGHT - 2)
+        * TILE;
 
-    cameraY = Math.max(
-        0,
-        Math.min(
-            cameraY,
-            WORLD_HEIGHT * TILE - canvas.height
-        )
-    );
-}
-
-// =============================
-// DRAW BLOCK
-// =============================
-
-function drawBlock(type, x, y) {
-
-    const px = x * TILE - cameraX;
-    const py = y * TILE - cameraY;
-
-    if (type === GRASS) {
-
-        ctx.fillStyle = "#5dbb3f";
-        ctx.fillRect(px, py, TILE, TILE);
-
-        ctx.fillStyle = "#79502c";
-        ctx.fillRect(px, py + 10, TILE, TILE - 10);
-    }
-
-    else if (type === DIRT) {
-
-        ctx.fillStyle = "#79502c";
-        ctx.fillRect(px, py, TILE, TILE);
-    }
-
-    else if (type === STONE) {
-
-        ctx.fillStyle = "#777";
-        ctx.fillRect(px, py, TILE, TILE);
-
-        // Stone pixels
-        ctx.fillStyle = "#666";
-
-        for (let i = 0; i < 5; i++) {
-            const sx = px + Math.random() * TILE;
-            const sy = py + Math.random() * TILE;
-
-            ctx.fillRect(
-                Math.floor(sx / 5) * 5,
-                Math.floor(sy / 5) * 5,
-                5,
-                5
-            );
-        }
-    }
-
-    else if (type === WOOD) {
-
-        ctx.fillStyle = "#8b5a2b";
-        ctx.fillRect(px, py, TILE, TILE);
-
-        ctx.fillStyle = "#603b1d";
-
-        for (let i = 0; i < 4; i++) {
-            ctx.fillRect(
-                px + 8 + i * 9,
-                py,
-                3,
-                TILE
-            );
-        }
-    }
-
-    // Block outline
-    ctx.strokeStyle = "rgba(0,0,0,.15)";
-    ctx.strokeRect(px, py, TILE, TILE);
-}
-
-// =============================
-// DRAW WORLD
-// =============================
-
-function drawWorld() {
-
-    // Sky
-    ctx.fillStyle = "#87ceeb";
-    ctx.fillRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    // Sun
-    ctx.fillStyle = "#fff176";
-
-    ctx.beginPath();
-    ctx.arc(
-        canvas.width - 120,
-        100,
-        50,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    // Blocks
-    const startX =
-        Math.max(
-            0,
-            Math.floor(cameraX / TILE) - 1
-        );
-
-    const endX =
-        Math.min(
-            WORLD_WIDTH,
-            Math.ceil(
-                (cameraX + canvas.width) / TILE
-            ) + 1
-        );
-
-    const startY =
-        Math.max(
-            0,
-            Math.floor(cameraY / TILE) - 1
-        );
-
-    const endY =
-        Math.min(
-            WORLD_HEIGHT,
-            Math.ceil(
-                (cameraY + canvas.height) / TILE
-            ) + 1
-        );
-
-    for (let y = startY; y < endY; y++) {
-
-        for (let x = startX; x < endX; x++) {
-
-            const block = world[y][x];
-
-            if (block !== AIR) {
-                drawBlock(block, x, y);
-            }
-        }
-    }
-}
-
-// =============================
-// DRAW PLAYER
-// =============================
-
-function drawPlayer() {
-
-    const x = player.x - cameraX;
-    const y = player.y - cameraY;
-
-    // Body
-    ctx.fillStyle = "#2196f3";
-    ctx.fillRect(
-        x,
-        y + 14,
-        player.width,
-        player.height - 14
-    );
-
-    // Head
-    ctx.fillStyle = "#f0b27a";
-    ctx.fillRect(
-        x,
-        y,
-        player.width,
-        18
-    );
-
-    // Hair
-    ctx.fillStyle = "#4e342e";
-    ctx.fillRect(
-        x,
-        y,
-        player.width,
-        6
-    );
-
-    // Eyes
-    ctx.fillStyle = "#222";
-
-    ctx.fillRect(
-        x + 6,
-        y + 8,
-        4,
-        4
-    );
-
-    ctx.fillRect(
-        x + 18,
-        y + 8,
-        4,
-        4
-    );
-}
-
-// =============================
-// BLOCK EDITING
-// =============================
-
-canvas.addEventListener("contextmenu", e => {
-    e.preventDefault();
-});
-
-canvas.addEventListener("mousedown", e => {
-
-    const rect = canvas.getBoundingClientRect();
-
-    const mouseX =
-        e.clientX -
-        rect.left +
-        cameraX;
-
-    const mouseY =
-        e.clientY -
-        rect.top +
-        cameraY;
-
-    const tx = Math.floor(mouseX / TILE);
-    const ty = Math.floor(mouseY / TILE);
 
     if (
-        tx < 0 ||
-        tx >= WORLD_WIDTH ||
-        ty < 0 ||
-        ty >= WORLD_HEIGHT
+        player.y >
+        bottomLimit
     ) {
-        return;
+
+        player.y =
+            bottomLimit;
+
+        player.vy = 0;
+
+        player.grounded =
+            true;
     }
 
-    // Left click = break
-    if (e.button === 0) {
 
-        world[ty][tx] = AIR;
+    /* Hunger */
+
+    player.hunger -=
+        0.01;
+
+
+    if (
+        player.hunger < 0
+    ) {
+
+        player.hunger = 0;
     }
 
-    // Right click = place
-    if (e.button === 2) {
 
-        // Don't place a block inside player
-        const bx = tx * TILE;
-        const by = ty * TILE;
+    if (
+        player.hunger === 0
+    ) {
 
-        const overlapsPlayer =
-            bx < player.x + player.width &&
-            bx + TILE > player.x &&
-            by < player.y + player.height &&
-            by + TILE > player.y;
-
-        if (!overlapsPlayer) {
-            world[ty][tx] = DIRT;
-        }
+        player.health -=
+            0.02;
     }
-});
 
-// =============================
-// GAME LOOP
-// =============================
 
-function gameLoop() {
+    if (
+        player.health <= 0
+    ) {
 
-    updatePlayer();
-
-    drawWorld();
-
-    drawPlayer();
-
-    requestAnimationFrame(gameLoop);
+        respawn();
+    }
 }
 
-// =============================
-// RESIZE
-// =============================
 
-window.addEventListener("resize", () => {
+/* =====================================================
+   ANIMAL UPDATE
+===================================================== */
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-});
+function updateAnimals() {
 
-// Start game
-gameLoop();
+    for (
+        const animal of animals
+    ) {
 
-</script>
+        animal.timer--;
 
-</body>
-</html>
+
+        if (
+            animal.timer <= 0
+        ) {
+
+            animal.timer =
+                60 +
+                Math.random() * 180;
+
+
+            animal.vx =
+                (
+                    Math.random()
+                    - 0.5
+                ) * 1.5;
+        }
+
+
+        animal.x +=
+            animal.vx;
+
+
+        const tx =
+            Math.floor(
+                animal.x / TILE
+            );
+
+
+        const ground =
+            findGround(tx);
+
+
+        animal.y =
+            (ground - 1)
+            * TILE;
+
+
+        if (
+            tx <= 1 ||
+            tx >= WORLD_WIDTH - 2
+        ) {
+
+            animal.vx *= -1;
+        }
+    }
+}
+
+
+/* =====================================================
+   MOUSE
+===================================================== */
+
+canvas.addEventListener(
+    "mousemove",
+    e => {
+
+        mouseX =
+            e.clientX +
+            cameraX;
+
+        mouseY =
+            e.clientY +
+            cameraY;
+    }
+);
+
+
+/* =====================================================
+   MINE BLOCK
+===================================================== */
+
+canvas.addEventListener(
+    "mousedown",
+    e => {
+
+        if (
+            !gameRunning
+        ) {
+            return;
+        }
+
+
+        const tx =
+            Math.floor(
+                mouseX / TILE
+            );
+
+        const ty =
+            Math.floor(
+                mouseY / TILE
+            );
+
+
+        if (
+            tx < 0 ||
+            tx >= WORLD_WIDTH ||
+            ty < 0 ||
+            ty >= WORLD_HEIGHT
+        ) {
+
+            return;
+        }
+
+
+        /* LEFT CLICK = MINE */
+
+        if (
+            e.button === 0
+        ) {
+
+            mineBlock(
+                tx,
+                ty
+            );
+        }
+
+
+        /* RIGHT CLICK = PLACE */
+
+        if (
+            e.button === 2
+        ) {
+
+            pla
 ```

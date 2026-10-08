@@ -1,0 +1,94 @@
+/* Reset browser defaults and stretch viewport */
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #87CEEB; /* Sky blue background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none; /* Prevents text highlighting while clicking frantically */
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Crosshair exactly in the absolute center of the viewport */
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translate(-50%, -50%);
+    pointer-events: none; /* Stops it from blocking clicks */
+}
+
+/* Using pseudo-elements to draw crosshair lines without extra images */
+#crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background: white;
+}
+#crosshair::before { top: 4px; left: 0; width: 10px; height: 2px; }
+#crosshair::after { top: 0; left: 4px; width: 2px; height: 10px; }
+
+/* HUD Styling (Heads-Up Display) */
+#hud {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6); /* Semi-transparent black */
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    pointer-events: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.stat-bar {
+    font-weight: bold;
+}
+
+.highlight {
+    color: #4CAF50; /* Green highlight for current block */
+}
+
+/* Control helper bar at the bottom */
+#instructions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    text-align: center;
+    pointer-events: none;
+}
+
+/* Blocker screen overlay when game is paused/not focused */
+#blocker {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    z-index: 10;
+}
+
+#instructions-popup {
+    font-size: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 20px;
+    border-radius: 10px;
+}

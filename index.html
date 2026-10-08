@@ -1,281 +1,653 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Sandbox Survival Game</title>
-    
-    <!-- ─── EMBEDDED CSS STYLESHEET ────────────────────────────────── -->
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #87CEEB;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minecraft 2.0</title>
 
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-        /* Crosshair */
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 5;
-        }
-        #crosshair::before, #crosshair::after {
-            content: '';
-            position: absolute;
-            background: white;
-        }
-        #crosshair::before { top: 4px; left: 0; width: 10px; height: 2px; }
-        #crosshair::after { top: 0; left: 4px; width: 2px; height: 10px; }
+    body {
+        overflow: hidden;
+        background: #87ceeb;
+        font-family: Arial, sans-serif;
+    }
 
-        /* HUD Display Layout */
-        #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.65);
-            color: #ffffff;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.6;
-            pointer-events: none;
-            z-index: 5;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
+    canvas {
+        display: block;
+        image-rendering: pixelated;
+    }
 
-        .stat-bar {
-            font-weight: bold;
-        }
+    #ui {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        color: white;
+        background: rgba(0,0,0,.55);
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 15px;
+        z-index: 10;
+    }
 
-        .highlight {
-            color: #4CAF50;
-        }
+    #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 5;
+    }
 
-        /* Control instructions footer */
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 13px;
-            text-align: center;
-            pointer-events: none;
-            z-index: 5;
-        }
+    #crosshair::before,
+    #crosshair::after {
+        content: "";
+        position: absolute;
+        background: white;
+        box-shadow: 0 0 2px black;
+    }
 
-        /* Startup & Blocker Overlay Screen */
-        #blocker {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-            cursor: pointer;
-            z-index: 10;
-        }
+    #crosshair::before {
+        width: 2px;
+        height: 20px;
+        left: 9px;
+    }
 
-        #instructions-popup {
-            font-size: 18px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 30px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.2);
-            line-height: 1.8;
-        }
-        
-        .btn-start {
-            margin-top: 15px;
-            display: inline-block;
-            background: #4CAF50;
-            padding: 10px 25px;
-            border-radius: 5px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-    </style>
-
-    <!-- Load Three.js safely from a public CDN -->
-    <script src="https://cloudflare.com"></script>
+    #crosshair::after {
+        width: 20px;
+        height: 2px;
+        top: 9px;
+    }
+</style>
 </head>
+
 <body>
 
-    <!-- Start Overlay Screen -->
-    <div id="blocker">
-        <div id="instructions-popup">
-            <strong style="font-size: 24px; color: #4CAF50;">3D WEB SURVIVAL GAME</strong><br><br>
-            <strong>W, A, S, D</strong> = Move around | <strong>Spacebar</strong> = Jump<br>
-            <strong>Left Click</strong> = Mine / Break Block<br>
-            <strong>Right Click</strong> = Place Selected Block<br>
-            <strong>Keys [1, 2, 3]</strong> = Change Selected Block Type<br>
-            <strong>E Key</strong> = Eat Apple | <strong>R Key</strong> = Sleep | <strong>C Key</strong> = Craft Stone<br><br>
-            <div class="btn-start">Click Anywhere To Start</div>
-        </div>
-    </div>
+<div id="ui">
+    <b>Minecraft 2.0</b><br>
+    A / D = Move<br>
+    SPACE = Jump<br>
+    Left Click = Break Block<br>
+    Right Click = Place Block
+</div>
 
-    <!-- UI Overlay Assets -->
-    <div id="crosshair"></div>
-    <div id="canvas-container"></div>
-    
-    <div id="hud">
-        <div class="stat-bar">♥ HP: <span id="hp-val">100</span> | 🍖 Hunger: <span id="hunger-val">100</span> | ⚡ Energy: <span id="energy-val">100</span></div>
-        <div style="margin-top: 8px;">Selected Block: <span id="selected-val" class="highlight">GRASS</span></div>
-        <div style="margin-top: 4px;">Inventory: 
-            Grass(<span id="inv-grass">10</span>) 
-            Stone(<span id="inv-stone">5</span>) 
-            Wood(<span id="inv-wood">5</span>) 
-            Apple(<span id="inv-apple">3</span>)
-        </div>
-    </div>
+<div id="crosshair"></div>
 
-    <div id="instructions">
-        [1-3] Swap Block | [E] Eat Apple | [R] Sleep | [C] Craft
-    </div>
+<canvas id="game"></canvas>
 
-    <!-- ─── EMBEDDED JAVASCRIPT ENGINE ─────────────────────────────── -->
-    <script>
-        // Core Game Engine Data structures
-        let scene, camera, renderer, clock;
-        let player = {
-            position: new THREE.Vector3(50, 1.6, 50),
-            velocity: new THREE.Vector3(),
-            canJump: true,
-            health: 100,
-            hunger: 100,
-            energy: 100
-        };
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-        // Key Controller Variables
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let isLocked = false;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-        // Mechanics Constants
-        const MAP_SIZE = 100;
-        let blocks = []; 
-        let mobs = [];
+// =============================
+// WORLD SETTINGS
+// =============================
 
-        let inventory = { Grass: 10, Stone: 5, Wood: 5, Apple: 3 };
-        const blockTypes = ["Grass", "Stone", "Wood"];
-        let currentBlockIndex = 0;
+const TILE = 40;
 
-        const blockColors = { Grass: 0x557a2b, Stone: 0x777777, Wood: 0x8a5a36 };
+const WORLD_WIDTH = 100;
+const WORLD_HEIGHT = 25;
 
-        let raycaster = new THREE.Raycaster();
-        let mouseCenter = new THREE.Vector2(0, 0); 
+const world = [];
 
-        // Visual Element Mapping Targets
-        let blocker, hpVal, hungerVal, energyVal, selectedVal, invGrass, invStone, invWood, invApple;
+// Block types
+const AIR = 0;
+const GRASS = 1;
+const DIRT = 2;
+const STONE = 3;
+const WOOD = 4;
 
-        // Blocks native right click dropdown windows across the workspace loop
-        document.addEventListener('contextmenu', event => event.preventDefault());
+// =============================
+// GENERATE WORLD
+// =============================
 
-        window.onload = function() {
-            blocker = document.getElementById('blocker');
-            hpVal = document.getElementById('hp-val');
-            hungerVal = document.getElementById('hunger-val');
-            energyVal = document.getElementById('energy-val');
-            selectedVal = document.getElementById('selected-val');
-            invGrass = document.getElementById('inv-grass');
-            invStone = document.getElementById('inv-stone');
-            invWood = document.getElementById('inv-wood');
-            invApple = document.getElementById('inv-apple');
+for (let y = 0; y < WORLD_HEIGHT; y++) {
+    world[y] = [];
 
-            init();
-            animate();
-        };
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+        world[y][x] = AIR;
+    }
+}
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+// Ground height
+const groundHeights = [];
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.copy(player.position);
+for (let x = 0; x < WORLD_WIDTH; x++) {
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+    // Small hills
+    const height =
+        12 +
+        Math.floor(Math.sin(x * 0.15) * 2) +
+        Math.floor(Math.sin(x * 0.05) * 2);
 
-            clock = new THREE.Clock();
+    groundHeights[x] = height;
 
-            // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            dirLight.position.set(20, 40, 20);
-            scene.add(dirLight);
+    for (let y = height; y < WORLD_HEIGHT; y++) {
 
-            // Ground Flat Node Plane
-            const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
-            const floorMat = new THREE.MeshLambertMaterial({ color: 0x3a5f0b });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.set(MAP_SIZE/2, 0, MAP_SIZE/2);
-            scene.add(floor);
+        if (y === height) {
+            world[y][x] = GRASS;
+        }
+        else if (y < height + 4) {
+            world[y][x] = DIRT;
+        }
+        else {
+            world[y][x] = STONE;
+        }
+    }
+}
 
-            // Natural environment block configurations
-            for(let i=0; i<40; i++) {
-                let rx = Math.floor(Math.random() * (MAP_SIZE - 10)) + 5;
-                let rz = Math.floor(Math.random() * (MAP_SIZE - 10)) + 5;
-                let type = Math.random() > 0.5 ? "Wood" : "Stone";
-                spawnBlock(rx, 0.5, rz, type);
-                if (type === "Wood") spawnBlock(rx, 1.5, rz, "Wood"); 
+// =============================
+// PLAYER
+// =============================
+
+const player = {
+    x: 10 * TILE,
+    y: 5 * TILE,
+
+    width: 28,
+    height: 38,
+
+    vx: 0,
+    vy: 0,
+
+    speed: 5,
+    jumpPower: 12,
+
+    onGround: false
+};
+
+const keys = {};
+
+document.addEventListener("keydown", e => {
+    keys[e.key.toLowerCase()] = true;
+
+    if (e.code === "Space") {
+        e.preventDefault();
+
+        if (player.onGround) {
+            player.vy = -player.jumpPower;
+            player.onGround = false;
+        }
+    }
+});
+
+document.addEventListener("keyup", e => {
+    keys[e.key.toLowerCase()] = false;
+});
+
+// =============================
+// CAMERA
+// =============================
+
+let cameraX = 0;
+let cameraY = 0;
+
+// =============================
+// COLLISION
+// =============================
+
+function isSolid(tx, ty) {
+
+    if (tx < 0 || tx >= WORLD_WIDTH)
+        return true;
+
+    if (ty < 0)
+        return false;
+
+    if (ty >= WORLD_HEIGHT)
+        return true;
+
+    return world[ty][tx] !== AIR;
+}
+
+
+function collisionRect(x, y, width, height) {
+
+    const left = Math.floor(x / TILE);
+    const right = Math.floor((x + width - 0.001) / TILE);
+
+    const top = Math.floor(y / TILE);
+    const bottom = Math.floor((y + height - 0.001) / TILE);
+
+    for (let ty = top; ty <= bottom; ty++) {
+        for (let tx = left; tx <= right; tx++) {
+
+            if (isSolid(tx, ty)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// =============================
+// PHYSICS
+// =============================
+
+function updatePlayer() {
+
+    // Movement
+    player.vx = 0;
+
+    if (keys["a"] || keys["arrowleft"]) {
+        player.vx = -player.speed;
+    }
+
+    if (keys["d"] || keys["arrowright"]) {
+        player.vx = player.speed;
+    }
+
+    // Gravity
+    player.vy += 0.55;
+
+    // Maximum falling speed
+    if (player.vy > 15) {
+        player.vy = 15;
+    }
+
+    // ---------------------------------
+    // HORIZONTAL COLLISION
+    // ---------------------------------
+
+    player.x += player.vx;
+
+    if (collisionRect(
+        player.x,
+        player.y,
+        player.width,
+        player.height
+    )) {
+
+        // Move back until we're outside the block
+        while (collisionRect(
+            player.x,
+            player.y,
+            player.width,
+            player.height
+        )) {
+            player.x -= Math.sign(player.vx || 1);
+        }
+
+        player.vx = 0;
+    }
+
+    // ---------------------------------
+    // VERTICAL COLLISION
+    // ---------------------------------
+
+    player.onGround = false;
+
+    player.y += player.vy;
+
+    if (collisionRect(
+        player.x,
+        player.y,
+        player.width,
+        player.height
+    )) {
+
+        if (player.vy > 0) {
+
+            // Falling down
+            while (collisionRect(
+                player.x,
+                player.y,
+                player.width,
+                player.height
+            )) {
+                player.y -= 1;
             }
 
-            // Generate moving mobs
-            for(let i=0; i<6; i++) {
-                let rx = Math.floor(Math.random() * 80) + 10;
-                let rz = Math.floor(Math.random() * 80) + 10;
-                spawnMob(rx, rz);
+            player.onGround = true;
+        }
+        else if (player.vy < 0) {
+
+            // Hitting ceiling
+            while (collisionRect(
+                player.x,
+                player.y,
+                player.width,
+                player.height
+            )) {
+                player.y += 1;
             }
+        }
 
-            window.addEventListener('resize', onWindowResize);
-            
-            // Pointerlock Engine activations
-            blocker.addEventListener('click', () => {
-                blocker.requestPointerLock();
-            });
+        player.vy = 0;
+    }
 
-            document.addEventListener('pointerlockchange', () => {
-                if (document.pointerLockElement === blocker) {
-                    blocker.style.display = 'none';
-                    isLocked = true;
-                } else {
-                    blocker.style.display = 'flex';
-                    isLocked = false;
-                }
-            });
+    // Extra safety:
+    // Never allow the player to fall below the world.
+    if (player.y > WORLD_HEIGHT * TILE - player.height) {
 
-            document.addEventListener('mousemove', (e) => {
-                if (!isLocked) return;
-                camera.rotation.y -= e.movementX * 0.0025;
-                camera.rotation.x -= e.movementY * 0.0025;
-                camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
-            });
+        player.y =
+            WORLD_HEIGHT * TILE -
+            player.height;
 
-            document.addEventListener('keydown', onKeyDown);
-            document.addEventListener('keyup', onKeyUp);
+        player.vy = 0;
+        player.onGround = true;
+    }
+
+    // Camera follows player
+    cameraX =
+        player.x -
+        canvas.width / 2 +
+        player.width / 2;
+
+    cameraY =
+        player.y -
+        canvas.height / 2;
+
+    cameraX = Math.max(
+        0,
+        Math.min(
+            cameraX,
+            WORLD_WIDTH * TILE - canvas.width
+        )
+    );
+
+    cameraY = Math.max(
+        0,
+        Math.min(
+            cameraY,
+            WORLD_HEIGHT * TILE - canvas.height
+        )
+    );
+}
+
+// =============================
+// DRAW BLOCK
+// =============================
+
+function drawBlock(type, x, y) {
+
+    const px = x * TILE - cameraX;
+    const py = y * TILE - cameraY;
+
+    if (type === GRASS) {
+
+        ctx.fillStyle = "#5dbb3f";
+        ctx.fillRect(px, py, TILE, TILE);
+
+        ctx.fillStyle = "#79502c";
+        ctx.fillRect(px, py + 10, TILE, TILE - 10);
+    }
+
+    else if (type === DIRT) {
+
+        ctx.fillStyle = "#79502c";
+        ctx.fillRect(px, py, TILE, TILE);
+    }
+
+    else if (type === STONE) {
+
+        ctx.fillStyle = "#777";
+        ctx.fillRect(px, py, TILE, TILE);
+
+        // Stone pixels
+        ctx.fillStyle = "#666";
+
+        for (let i = 0; i < 5; i++) {
+            const sx = px + Math.random() * TILE;
+            const sy = py + Math.random() * TILE;
+
+            ctx.fillRect(
+                Math.floor(sx / 5) * 5,
+                Math.floor(sy / 5) * 5,
+                5,
+                5
+            );
+        }
+    }
+
+    else if (type === WOOD) {
+
+        ctx.fillStyle = "#8b5a2b";
+        ctx.fillRect(px, py, TILE, TILE);
+
+        ctx.fillStyle = "#603b1d";
+
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(
+                px + 8 + i * 9,
+                py,
+                3,
+                TILE
+            );
+        }
+    }
+
+    // Block outline
+    ctx.strokeStyle = "rgba(0,0,0,.15)";
+    ctx.strokeRect(px, py, TILE, TILE);
+}
+
+// =============================
+// DRAW WORLD
+// =============================
+
+function drawWorld() {
+
+    // Sky
+    ctx.fillStyle = "#87ceeb";
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    // Sun
+    ctx.fillStyle = "#fff176";
+
+    ctx.beginPath();
+    ctx.arc(
+        canvas.width - 120,
+        100,
+        50,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    // Blocks
+    const startX =
+        Math.max(
+            0,
+            Math.floor(cameraX / TILE) - 1
+        );
+
+    const endX =
+        Math.min(
+            WORLD_WIDTH,
+            Math.ceil(
+                (cameraX + canvas.width) / TILE
+            ) + 1
+        );
+
+    const startY =
+        Math.max(
+            0,
+            Math.floor(cameraY / TILE) - 1
+        );
+
+    const endY =
+        Math.min(
+            WORLD_HEIGHT,
+            Math.ceil(
+                (cameraY + canvas.height) / TILE
+            ) + 1
+        );
+
+    for (let y = startY; y < endY; y++) {
+
+        for (let x = startX; x < endX; x++) {
+
+            const block = world[y][x];
+
+            if (block !== AIR) {
+                drawBlock(block, x, y);
+            }
+        }
+    }
+}
+
+// =============================
+// DRAW PLAYER
+// =============================
+
+function drawPlayer() {
+
+    const x = player.x - cameraX;
+    const y = player.y - cameraY;
+
+    // Body
+    ctx.fillStyle = "#2196f3";
+    ctx.fillRect(
+        x,
+        y + 14,
+        player.width,
+        player.height - 14
+    );
+
+    // Head
+    ctx.fillStyle = "#f0b27a";
+    ctx.fillRect(
+        x,
+        y,
+        player.width,
+        18
+    );
+
+    // Hair
+    ctx.fillStyle = "#4e342e";
+    ctx.fillRect(
+        x,
+        y,
+        player.width,
+        6
+    );
+
+    // Eyes
+    ctx.fillStyle = "#222";
+
+    ctx.fillRect(
+        x + 6,
+        y + 8,
+        4,
+        4
+    );
+
+    ctx.fillRect(
+        x + 18,
+        y + 8,
+        4,
+        4
+    );
+}
+
+// =============================
+// BLOCK EDITING
+// =============================
+
+canvas.addEventListener("contextmenu", e => {
+    e.preventDefault();
+});
+
+canvas.addEventListener("mousedown", e => {
+
+    const rect = canvas.getBoundingClientRect();
+
+    const mouseX =
+        e.clientX -
+        rect.left +
+        cameraX;
+
+    const mouseY =
+        e.clientY -
+        rect.top +
+        cameraY;
+
+    const tx = Math.floor(mouseX / TILE);
+    const ty = Math.floor(mouseY / TILE);
+
+    if (
+        tx < 0 ||
+        tx >= WORLD_WIDTH ||
+        ty < 0 ||
+        ty >= WORLD_HEIGHT
+    ) {
+        return;
+    }
+
+    // Left click = break
+    if (e.button === 0) {
+
+        world[ty][tx] = AIR;
+    }
+
+    // Right click = place
+    if (e.button === 2) {
+
+        // Don't place a block inside player
+        const bx = tx * TILE;
+        const by = ty * TILE;
+
+        const overlapsPlayer =
+            bx < player.x + player.width &&
+            bx + TILE > player.x &&
+            by < player.y + player.height &&
+            by + TILE > player.y;
+
+        if (!overlapsPlayer) {
+            world[ty][tx] = DIRT;
+        }
+    }
+});
+
+// =============================
+// GAME LOOP
+// =============================
+
+function gameLoop() {
+
+    updatePlayer();
+
+    drawWorld();
+
+    drawPlayer();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// =============================
+// RESIZE
+// =============================
+
+window.addEventListener("resize", () => {
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+// Start game
+gameLoop();
+
+</script>
+
+</body>
+</html>
+```

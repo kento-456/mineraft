@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Web Sandbox Survival</title>
-    <!-- ─── CSS STYLE SHEET ────────────────────────────────────────── -->
+    <title>3D Sandbox Survival Game</title>
+    
+    <!-- ─── EMBEDDED CSS STYLESHEET ────────────────────────────────── -->
     <style>
         body {
             margin: 0;
@@ -18,9 +19,13 @@
         #canvas-container {
             width: 100vw;
             height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
 
-        /* Crosshair in the center of the screen */
+        /* Crosshair */
         #crosshair {
             position: absolute;
             top: 50%;
@@ -29,6 +34,7 @@
             height: 10px;
             transform: translate(-50%, -50%);
             pointer-events: none;
+            z-index: 5;
         }
         #crosshair::before, #crosshair::after {
             content: '';
@@ -38,48 +44,52 @@
         #crosshair::before { top: 4px; left: 0; width: 10px; height: 2px; }
         #crosshair::after { top: 0; left: 4px; width: 2px; height: 10px; }
 
-        /* HUD & UI Panels */
+        /* HUD Display Layout */
         #hud {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            color: #fff;
+            background: rgba(0, 0, 0, 0.65);
+            color: #ffffff;
             padding: 15px;
             border-radius: 8px;
             font-size: 14px;
             line-height: 1.6;
             pointer-events: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 5;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
 
         .stat-bar {
             font-weight: bold;
         }
+
         .highlight {
             color: #4CAF50;
         }
 
+        /* Control instructions footer */
         #instructions {
             position: absolute;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             color: white;
             padding: 10px 20px;
             border-radius: 20px;
             font-size: 13px;
             text-align: center;
             pointer-events: none;
+            z-index: 5;
         }
 
-        /* Click to Play Screen */
+        /* Startup & Blocker Overlay Screen */
         #blocker {
             position: absolute;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.6);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -88,34 +98,49 @@
             cursor: pointer;
             z-index: 10;
         }
+
         #instructions-popup {
-            font-size: 20px;
-            background: rgba(0,0,0,0.4);
-            padding: 20px;
-            border-radius: 10px;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            line-height: 1.8;
+        }
+        
+        .btn-start {
+            margin-top: 15px;
+            display: inline-block;
+            background: #4CAF50;
+            padding: 10px 25px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
     </style>
 
-    <!-- Include Three.js library from CDN -->
+    <!-- Load Three.js safely from a public CDN -->
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
-    <!-- Click to lock pointer screen -->
+    <!-- Start Overlay Screen -->
     <div id="blocker">
         <div id="instructions-popup">
-            <strong>CLICK ANYWHERE TO PLAY</strong><br><br>
-            W, A, S, D = Move | Space = Jump<br>
-            Left Click = Mine Block | Right Click = Place Block<br>
-            Keys 1, 2, 3 = Select Block<br>
-            E = Eat Apple | R = Sleep | C = Craft Stone
+            <strong style="font-size: 24px; color: #4CAF50;">3D WEB SURVIVAL GAME</strong><br><br>
+            <strong>W, A, S, D</strong> = Move around | <strong>Spacebar</strong> = Jump<br>
+            <strong>Left Click</strong> = Mine / Break Block<br>
+            <strong>Right Click</strong> = Place Selected Block<br>
+            <strong>Keys [1, 2, 3]</strong> = Change Selected Block Type<br>
+            <strong>E Key</strong> = Eat Apple | <strong>R Key</strong> = Sleep | <strong>C Key</strong> = Craft Stone<br><br>
+            <div class="btn-start">Click Anywhere To Start</div>
         </div>
     </div>
 
+    <!-- UI Overlay Assets -->
     <div id="crosshair"></div>
     <div id="canvas-container"></div>
     
-    <!-- HUD Layer -->
     <div id="hud">
         <div class="stat-bar">♥ HP: <span id="hp-val">100</span> | 🍖 Hunger: <span id="hunger-val">100</span> | ⚡ Energy: <span id="energy-val">100</span></div>
         <div style="margin-top: 8px;">Selected Block: <span id="selected-val" class="highlight">GRASS</span></div>
@@ -131,9 +156,9 @@
         [1-3] Swap Block | [E] Eat Apple | [R] Sleep | [C] Craft
     </div>
 
-    <!-- ─── JAVASCRIPT GAME LOGIC ──────────────────────────────────── -->
+    <!-- ─── EMBEDDED JAVASCRIPT ENGINE ─────────────────────────────── -->
     <script>
-        // Game Engine Variables
+        // Core Game Engine Data structures
         let scene, camera, renderer, clock;
         let player = {
             position: new THREE.Vector3(50, 1.6, 50),
@@ -144,42 +169,46 @@
             energy: 100
         };
 
-        // Input & Controls States
+        // Key Controller Variables
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let isLocked = false;
-        
-        // Gameplay Variables
+
+        // Mechanics Constants
         const MAP_SIZE = 100;
-        let blocks = []; // Holds references to block meshes for collision/raycasting
+        let blocks = []; 
         let mobs = [];
-        
+
         let inventory = { Grass: 10, Stone: 5, Wood: 5, Apple: 3 };
         const blockTypes = ["Grass", "Stone", "Wood"];
         let currentBlockIndex = 0;
 
-        // Colors mapping
         const blockColors = { Grass: 0x557a2b, Stone: 0x777777, Wood: 0x8a5a36 };
 
-        // Raycasting for mining/placing
         let raycaster = new THREE.Raycaster();
-        let mouseCenter = new THREE.Vector2(0, 0); // Always center screen
+        let mouseCenter = new THREE.Vector2(0, 0); 
 
-        // Setup DOM Hooks
-        const blocker = document.getElementById('blocker');
-        const hpVal = document.getElementById('hp-val');
-        const hungerVal = document.getElementById('hunger-val');
-        const energyVal = document.getElementById('energy-val');
-        const selectedVal = document.getElementById('selected-val');
-        const invGrass = document.getElementById('inv-grass');
-        const invStone = document.getElementById('inv-stone');
-        const invWood = document.getElementById('inv-wood');
-        const invApple = document.getElementById('inv-apple');
+        // Visual Element Mapping Targets
+        let blocker, hpVal, hungerVal, energyVal, selectedVal, invGrass, invStone, invWood, invApple;
 
-        init();
-        animate();
+        // Blocks native right click dropdown windows across the workspace loop
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        window.onload = function() {
+            blocker = document.getElementById('blocker');
+            hpVal = document.getElementById('hp-val');
+            hungerVal = document.getElementById('hunger-val');
+            energyVal = document.getElementById('energy-val');
+            selectedVal = document.getElementById('selected-val');
+            invGrass = document.getElementById('inv-grass');
+            invStone = document.getElementById('inv-stone');
+            invWood = document.getElementById('inv-wood');
+            invApple = document.getElementById('inv-apple');
+
+            init();
+            animate();
+        };
 
         function init() {
-            // 1. Scene, Camera, Renderer Setup
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
             scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
@@ -193,14 +222,14 @@
 
             clock = new THREE.Clock();
 
-            // 2. Lighting
+            // Lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
             dirLight.position.set(20, 40, 20);
             scene.add(dirLight);
 
-            // 3. World Generation (100x100 Base Floor)
+            // Ground Flat Node Plane
             const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
             const floorMat = new THREE.MeshLambertMaterial({ color: 0x3a5f0b });
             const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -208,24 +237,25 @@
             floor.position.set(MAP_SIZE/2, 0, MAP_SIZE/2);
             scene.add(floor);
 
-            // Spawn some initial structures/resources across the 100x100 grid
+            // Natural environment block configurations
             for(let i=0; i<40; i++) {
                 let rx = Math.floor(Math.random() * (MAP_SIZE - 10)) + 5;
                 let rz = Math.floor(Math.random() * (MAP_SIZE - 10)) + 5;
                 let type = Math.random() > 0.5 ? "Wood" : "Stone";
                 spawnBlock(rx, 0.5, rz, type);
-                if (type === "Wood") spawnBlock(rx, 1.5, rz, "Wood"); // Make trees taller
+                if (type === "Wood") spawnBlock(rx, 1.5, rz, "Wood"); 
             }
 
-            // 4. Mobs Setup (Zombies)
+            // Generate moving mobs
             for(let i=0; i<6; i++) {
                 let rx = Math.floor(Math.random() * 80) + 10;
                 let rz = Math.floor(Math.random() * 80) + 10;
                 spawnMob(rx, rz);
             }
 
-            // 5. Browser Window & Pointer Lock Event Handling
             window.addEventListener('resize', onWindowResize);
+            
+            // Pointerlock Engine activations
             blocker.addEventListener('click', () => {
                 blocker.requestPointerLock();
             });
@@ -242,33 +272,10 @@
 
             document.addEventListener('mousemove', (e) => {
                 if (!isLocked) return;
-                // Rotate camera based on mouse movement
                 camera.rotation.y -= e.movementX * 0.0025;
                 camera.rotation.x -= e.movementY * 0.0025;
-                // Clamp looking straight up or down
                 camera.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camera.rotation.x));
             });
 
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
-            document.addEventListener('mousedown', onMouseDown);
-
-            // Setup proper initial Euler rotation order for FPS look controls
-            camera.rotation.order = "YXZ";
-            updateUI();
-        }
-
-        // Helper function to build blocks into existence
-        function spawnBlock(x, y, z, type) {
-            const geo = new THREE.BoxGeometry(1, 1, 1);
-            const mat = new THREE.MeshLambertMaterial({ color: blockColors[type] });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(x, y, z);
-            mesh.userData = { type: type };
-            scene.add(mesh);
-            blocks.push(mesh);
-        }
-
-        function spawnMob(x, z) {
-            const geo = new THREE.BoxGeometry(1, 2, 1);
-            const mat = new THREE.MeshLambertMaterial({ color: 0xff00ff }); // Magenta

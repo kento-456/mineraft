@@ -1,51 +1,454 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Web Sandbox Survival (BabylonJS)</title>
-    
-    <!-- Link to your new style.css file -->
-    <link rel="stylesheet" href="style.css">
+```css
+* {
+    box-sizing: border-box;
+}
 
-    <!-- Include Babylon.js Framework from secure CDN -->
-    <script src="https://babylonjs.com"></script>
-</head>
-<body>
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
 
-    <div id="blocker">
-        <div id="popup">
-            <strong style="font-size: 24px; color: #4CAF50;">3D JAVASCRIPT VOXEL SURVIVAL</strong><br><br>
-            <strong>W, A, S, D</strong> = Move around | <strong>Mouse</strong> = Look around<br>
-            <strong>Left Click</strong> = Mine Block | <strong>Right Click</strong> = Place Block<br>
-            <strong>Keys 1, 2, 3</strong> = Switch Selected Block Type<br>
-            <strong>E</strong> = Eat Apple | <strong>R</strong> = Sleep | <strong>C</strong> = Craft Stone<br><br>
-            <div class="btn-start">CLICK ANYWHERE TO START</div>
-        </div>
-    </div>
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
-    <div id="crosshair"></div>
-    
-    <div id="hud">
-        <div>♥ HP: <span id="hp-val">100</span> | 🍖 Hunger: <span id="hunger-val">100</span> | ⚡ Energy: <span id="energy-val">100</span></div>
-        <div style="margin-top: 8px;">Active Block: <span id="selected-val" class="highlight">GRASS</span></div>
-        <div style="margin-top: 4px;">Inventory: 
-            Grass(<span id="inv-grass">10</span>) 
-            Stone(<span id="inv-stone">5</span>) 
-            Wood(<span id="inv-wood">5</span>) 
-            Apple(<span id="inv-apple">3</span>)
-        </div>
-    </div>
+    background: #87ceeb;
+}
 
-    <div id="instructions">
-        [1-3] Swap Block | [E] Eat Apple | [R] Sleep | [C] Craft
-    </div>
 
-    <canvas id="renderCanvas"></canvas>
+/* =========================================
+   GAME
+========================================= */
 
-    <!-- Keep the exact script loop logic from the previous Babylon.js reply here -->
-    <script>
-        // ... (Paste all previous BabylonJS JavaScript logic here) ...
-    </script>
-</body>
-</html>
+#game {
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+
+/* =========================================
+   START SCREEN
+========================================= */
+
+#startScreen {
+
+    position: fixed;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            rgba(0,0,0,.25),
+            rgba(0,0,0,.65)
+        ),
+        #4c8f3b;
+
+    z-index: 100;
+}
+
+
+/* Fake Minecraft landscape */
+
+#startScreen::before {
+
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #63b5e8 0%,
+            #87ceeb 55%,
+            #5b9e3b 56%,
+            #3d702b 100%
+        );
+
+    z-index: -1;
+}
+
+
+/* =========================================
+   MENU
+========================================= */
+
+.menu {
+
+    width: min(
+        430px,
+        calc(100% - 30px)
+    );
+
+    padding: 35px;
+
+    text-align: center;
+
+    background:
+        rgba(20,20,20,.88);
+
+    border: 4px solid #111;
+
+    box-shadow:
+        0 8px 0 #000,
+        0 15px 30px rgba(0,0,0,.5);
+
+    color: white;
+}
+
+
+/* =========================================
+   TITLE
+========================================= */
+
+.menu h1 {
+
+    margin: 0;
+
+    font-size: clamp(
+        35px,
+        8vw,
+        58px
+    );
+
+    letter-spacing: 2px;
+
+    color: #fff;
+
+    text-shadow:
+        4px 4px 0 #333,
+        6px 6px 0 #111;
+}
+
+.menu h1 span {
+
+    display: block;
+
+    font-size: .45em;
+
+    color: #75d957;
+
+    text-shadow:
+        3px 3px 0 #1d5517;
+}
+
+
+.subtitle {
+
+    margin:
+        10px 0 30px;
+
+    color: #ccc;
+}
+
+
+/* =========================================
+   INPUT
+========================================= */
+
+.menu label {
+
+    display: block;
+
+    text-align: left;
+
+    margin-bottom: 7px;
+
+    font-weight: bold;
+}
+
+.menu input {
+
+    width: 100%;
+
+    height: 48px;
+
+    padding: 0 12px;
+
+    border: 3px solid #555;
+
+    background: #222;
+
+    color: white;
+
+    font-size: 16px;
+
+    outline: none;
+}
+
+.menu input:focus {
+
+    border-color: #79d84b;
+}
+
+
+/* =========================================
+   BUTTONS
+========================================= */
+
+.menu button {
+
+    width: 100%;
+
+    min-height: 50px;
+
+    margin-top: 15px;
+
+    border: 3px solid #222;
+
+    background: #5eaa3d;
+
+    color: white;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    box-shadow:
+        inset 0 -5px rgba(0,0,0,.2);
+
+    transition:
+        transform .08s,
+        background .08s;
+}
+
+.menu button:hover {
+
+    background: #71c54a;
+}
+
+.menu button:active {
+
+    transform: translateY(3px);
+
+    box-shadow: none;
+}
+
+#randomWorld {
+
+    background: #555;
+}
+
+#randomWorld:hover {
+
+    background: #666;
+}
+
+
+#startMessage {
+
+    min-height: 20px;
+
+    margin-top: 15px;
+
+    color: #ffcc66;
+}
+
+
+/* =========================================
+   CROSSHAIR
+========================================= */
+
+#crosshair {
+
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+
+    transform:
+        translate(-50%, -50%);
+
+    color: white;
+
+    font-size: 27px;
+
+    font-weight: bold;
+
+    text-shadow:
+        2px 2px 3px black;
+
+    pointer-events: none;
+
+    z-index: 20;
+}
+
+
+/* =========================================
+   HUD
+========================================= */
+
+#hud {
+
+    position: fixed;
+
+    top: 15px;
+    left: 15px;
+
+    padding: 12px;
+
+    min-width: 180px;
+
+    background:
+        rgba(0,0,0,.6);
+
+    border: 2px solid
+        rgba(255,255,255,.2);
+
+    border-radius: 6px;
+
+    color: white;
+
+    font-size: 16px;
+
+    line-height: 1.7;
+
+    user-select: none;
+
+    z-index: 20;
+}
+
+.world-name {
+
+    margin-bottom: 7px;
+
+    color: #8cff5b;
+
+    font-weight: bold;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.3);
+}
+
+.controls {
+
+    margin-top: 8px;
+
+    padding-top: 7px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.2);
+
+    color: #ddd;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   HOTBAR
+========================================= */
+
+#hotbar {
+
+    position: fixed;
+
+    bottom: 18px;
+    left: 50%;
+
+    transform:
+        translateX(-50%);
+
+    display: flex;
+
+    gap: 5px;
+
+    z-index: 20;
+}
+
+.slot {
+
+    width: 55px;
+    height: 55px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+
+    background:
+        rgba(0,0,0,.65);
+
+    border:
+        3px solid #555;
+
+    color: white;
+
+    font-size: 25px;
+
+    user-select: none;
+}
+
+.slot.selected {
+
+    border-color: white;
+
+    box-shadow:
+        0 0 0 2px #777;
+}
+
+.slot small {
+
+    position: absolute;
+
+    right: 4px;
+    bottom: 2px;
+
+    font-size: 11px;
+
+    color: white;
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+
+    .menu {
+
+        padding: 25px 20px;
+    }
+
+    #hud {
+
+        font-size: 13px;
+
+        min-width: 150px;
+    }
+
+    .slot {
+
+        width: 45px;
+        height: 45px;
+
+        font-size: 20px;
+    }
+
+    #hotbar {
+
+        bottom: 10px;
+
+        gap: 3px;
+    }
+}
+```

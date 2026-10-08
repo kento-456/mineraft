@@ -1265,5 +1265,1321 @@ canvas.addEventListener(
             e.button === 2
         ) {
 
-            pla
+            placeBlock(
+                tx,
+                ty
+            );
+        }
+    }
+);
+
+
+/* Disable browser right-click */
+
+canvas.addEventListener(
+    "contextmenu",
+    e => {
+
+        e.preventDefault();
+    }
+);
+
+
+/* =====================================================
+   MINE
+===================================================== */
+
+function mineBlock(
+    x,
+    y
+) {
+
+    const block =
+        world[y][x];
+
+
+    if (
+        block === AIR
+    ) {
+
+        return;
+    }
+
+
+    /* Diamond */
+
+    if (
+        block === DIAMOND
+    ) {
+
+        player.diamonds++;
+
+        showMessage(
+            "💎 Diamond found!"
+        );
+    }
+
+
+    /* Leaves */
+
+    if (
+        block === LEAVES
+    ) {
+
+        if (
+            Math.random() < 0.3
+        ) {
+
+            player.apples++;
+
+            showMessage(
+                "🍎 You found an apple!"
+            );
+        }
+    }
+
+
+    /* Wood */
+
+    if (
+        block === WOOD
+    ) {
+
+        showMessage(
+            "🪵 Wood collected!"
+        );
+    }
+
+
+    world[y][x] =
+        AIR;
+}
+
+
+/* =====================================================
+   PLACE BLOCK
+===================================================== */
+
+function placeBlock(
+    x,
+    y
+) {
+
+    if (
+        world[y][x] !== AIR
+    ) {
+
+        return;
+    }
+
+
+    /*
+       Don't place a block
+       inside the player.
+    */
+
+    const blockLeft =
+        x * TILE;
+
+    const blockTop =
+        y * TILE;
+
+
+    const overlap =
+        player.x <
+        blockLeft + TILE &&
+
+        player.x +
+        player.width >
+        blockLeft &&
+
+        player.y <
+        blockTop + TILE &&
+
+        player.y +
+        player.height >
+        blockTop;
+
+
+    if (
+        overlap
+    ) {
+
+        return;
+    }
+
+
+    world[y][x] =
+        selectedBlock;
+}
+
+
+/* =====================================================
+   FOOD
+===================================================== */
+
+function eatFood() {
+
+    if (
+        player.hunger >= 100
+    ) {
+
+        showMessage(
+            "You aren't hungry!"
+        );
+
+        return;
+    }
+
+
+    if (
+        player.apples > 0
+    ) {
+
+        player.apples--;
+
+        player.hunger += 25;
+
+        showMessage(
+            "🍎 You ate an apple!"
+        );
+
+    } else if (
+        player.meat > 0
+    ) {
+
+        player.meat--;
+
+        player.hunger += 35;
+
+        showMessage(
+            "🥩 You ate meat!"
+        );
+
+    } else {
+
+        showMessage(
+            "You have no food!"
+        );
+
+        return;
+    }
+
+
+    player.hunger =
+        Math.min(
+            100,
+            player.hunger
+        );
+}
+
+
+/* =====================================================
+   SLEEP
+===================================================== */
+
+function sleep() {
+
+    const px =
+        Math.floor(
+            player.x / TILE
+        );
+
+
+    const py =
+        Math.floor(
+            player.y / TILE
+        );
+
+
+    let nearBed = false;
+
+
+    for (
+        let y = py - 3;
+        y <= py + 3;
+        y++
+    ) {
+
+        for (
+            let x = px - 3;
+            x <= px + 3;
+            x++
+        ) {
+
+            if (
+                x >= 0 &&
+                x < WORLD_WIDTH &&
+                y >= 0 &&
+                y < WORLD_HEIGHT &&
+                world[y][x] === BED
+            ) {
+
+                nearBed = true;
+            }
+        }
+    }
+
+
+    if (
+        !nearBed
+    ) {
+
+        showMessage(
+            "🛏️ Find a bed nearby!"
+        );
+
+        return;
+    }
+
+
+    player.sleeping =
+        !player.sleeping;
+
+
+    if (
+        player.sleeping
+    ) {
+
+        player.health = 100;
+
+        player.hunger = 100;
+
+        showMessage(
+            "🌙 Sleeping... Press F to wake."
+        );
+
+    } else {
+
+        showMessage(
+            "☀️ Good morning!"
+        );
+    }
+}
+
+
+/* =====================================================
+   ANIMAL ATTACK
+===================================================== */
+
+function attackAnimal(
+    animal
+) {
+
+    animal.health -= 10;
+
+
+    if (
+        animal.health <= 0
+    ) {
+
+        if (
+            animal.type === "cow" ||
+            animal.type === "pig" ||
+            animal.type === "chicken"
+        ) {
+
+            player.meat += 2;
+
+            showMessage(
+                "🥩 You got meat!"
+            );
+        }
+
+
+        const index =
+            animals.indexOf(
+                animal
+            );
+
+
+        if (
+            index >= 0
+        ) {
+
+            animals.splice(
+                index,
+                1
+            );
+        }
+
+    } else {
+
+        showMessage(
+            "You hit the " +
+            animal.type
+        );
+    }
+}
+
+
+/* =====================================================
+   CLICK ANIMALS
+===================================================== */
+
+canvas.addEventListener(
+    "dblclick",
+    e => {
+
+        const x =
+            e.clientX +
+            cameraX;
+
+        const y =
+            e.clientY +
+            cameraY;
+
+
+        for (
+            const animal of animals
+        ) {
+
+            if (
+                x >
+                animal.x - 20 &&
+
+                x <
+                animal.x + 20 &&
+
+                y >
+                animal.y - 10 &&
+
+                y <
+                animal.y + 40
+            ) {
+
+                attackAnimal(
+                    animal
+                );
+
+                return;
+            }
+        }
+    }
+);
+
+
+/* =====================================================
+   SELECT BLOCK
+===================================================== */
+
+function selectBlock(
+    number
+) {
+
+    const blocks = {
+
+        1: GRASS,
+        2: DIRT,
+        3: STONE,
+        4: WOOD,
+        5: DIAMOND,
+        6: BED
+
+    };
+
+
+    if (
+        blocks[number]
+    ) {
+
+        selectedBlock =
+            blocks[number];
+    }
+
+
+    document
+        .querySelectorAll(".slot")
+        .forEach(
+            slot => {
+
+                slot.classList.remove(
+                    "selected"
+                );
+
+                if (
+                    Number(
+                        slot.dataset.slot
+                    ) === number
+                ) {
+
+                    slot.classList.add(
+                        "selected"
+                    );
+                }
+            }
+        );
+}
+
+
+/* =====================================================
+   DRAW BLOCK
+===================================================== */
+
+function drawBlock(
+    type,
+    x,
+    y
+) {
+
+    const px =
+        x * TILE -
+        cameraX;
+
+    const py =
+        y * TILE -
+        cameraY;
+
+
+    switch (type) {
+
+        case GRASS:
+
+            ctx.fillStyle =
+                "#58b83d";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            ctx.fillStyle =
+                "#79502d";
+
+            ctx.fillRect(
+                px,
+                py + 10,
+                TILE,
+                TILE - 10
+            );
+
+            break;
+
+
+        case DIRT:
+
+            ctx.fillStyle =
+                "#79502d";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            break;
+
+
+        case STONE:
+
+            ctx.fillStyle =
+                "#777";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            ctx.fillStyle =
+                "#666";
+
+            ctx.fillRect(
+                px + 5,
+                py + 6,
+                5,
+                5
+            );
+
+            ctx.fillRect(
+                px + 19,
+                py + 18,
+                6,
+                6
+            );
+
+            break;
+
+
+        case WOOD:
+
+            ctx.fillStyle =
+                "#8b5a2b";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            ctx.fillStyle =
+                "#613d1d";
+
+            ctx.fillRect(
+                px + 7,
+                py,
+                4,
+                TILE
+            );
+
+            ctx.fillRect(
+                px + 21,
+                py,
+                4,
+                TILE
+            );
+
+            break;
+
+
+        case LEAVES:
+
+            ctx.fillStyle =
+                "#2f9d3a";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            ctx.fillStyle =
+                "#25802f";
+
+            ctx.fillRect(
+                px + 5,
+                py + 5,
+                7,
+                7
+            );
+
+            break;
+
+
+        case DIAMOND:
+
+            ctx.fillStyle =
+                "#444";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            ctx.fillStyle =
+                "#29e0e0";
+
+            ctx.fillRect(
+                px + 7,
+                py + 7,
+                8,
+                8
+            );
+
+            ctx.fillRect(
+                px + 16,
+                py + 14,
+                8,
+                8
+            );
+
+            break;
+
+
+        case COAL:
+
+            ctx.fillStyle =
+                "#555";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            ctx.fillStyle =
+                "#111";
+
+            ctx.fillRect(
+                px + 6,
+                py + 6,
+                8,
+                8
+            );
+
+            ctx.fillRect(
+                px + 18,
+                py + 18,
+                7,
+                7
+            );
+
+            break;
+
+
+        case BED:
+
+            ctx.fillStyle =
+                "#8b2020";
+
+            ctx.fillRect(
+                px,
+                py + 10,
+                TILE,
+                TILE - 10
+            );
+
+            ctx.fillStyle =
+                "#e63946";
+
+            ctx.fillRect(
+                px + 2,
+                py + 3,
+                TILE - 4,
+                12
+            );
+
+            break;
+
+
+        case SAND:
+
+            ctx.fillStyle =
+                "#d9c47c";
+
+            ctx.fillRect(
+                px,
+                py,
+                TILE,
+                TILE
+            );
+
+            break;
+    }
+
+
+    /* Block outline */
+
+    ctx.strokeStyle =
+        "#0002";
+
+    ctx.strokeRect(
+        px,
+        py,
+        TILE,
+        TILE
+    );
+}
+
+
+/* =====================================================
+   DRAW PLAYER
+===================================================== */
+
+function drawPlayer() {
+
+    const x =
+        player.x -
+        cameraX;
+
+    const y =
+        player.y -
+        cameraY;
+
+
+    /* Body */
+
+    ctx.fillStyle =
+        "#2468d8";
+
+    ctx.fillRect(
+        x,
+        y + 17,
+        player.width,
+        27
+    );
+
+
+    /* Head */
+
+    ctx.fillStyle =
+        "#c98b5b";
+
+    ctx.fillRect(
+        x + 2,
+        y,
+        20,
+        20
+    );
+
+
+    /* Hair */
+
+    ctx.fillStyle =
+        "#4a2a16";
+
+    ctx.fillRect(
+        x + 2,
+        y,
+        20,
+        6
+    );
+
+
+    /* Eye */
+
+    ctx.fillStyle =
+        "#111";
+
+    ctx.fillRect(
+        x + 16,
+        y + 8,
+        3,
+        3
+    );
+
+
+    /* Legs */
+
+    ctx.fillStyle =
+        "#333";
+
+    ctx.fillRect(
+        x + 3,
+        y + 40,
+        7,
+        6
+    );
+
+    ctx.fillRect(
+        x + 14,
+        y + 40,
+        7,
+        6
+    );
+}
+
+
+/* =====================================================
+   DRAW ANIMALS
+===================================================== */
+
+function drawAnimal(
+    animal
+) {
+
+    const x =
+        animal.x -
+        cameraX;
+
+    const y =
+        animal.y -
+        cameraY;
+
+
+    let bodyColor =
+        "#fff";
+
+
+    if (
+        animal.type === "cow"
+    ) {
+
+        bodyColor =
+            "#76502f";
+    }
+
+
+    if (
+        animal.type === "pig"
+    ) {
+
+        bodyColor =
+            "#e99aaf";
+    }
+
+
+    if (
+        animal.type === "chicken"
+    ) {
+
+        bodyColor =
+            "#eee";
+    }
+
+
+    /* Body */
+
+    ctx.fillStyle =
+        bodyColor;
+
+    ctx.fillRect(
+        x,
+        y + 12,
+        35,
+        22
+    );
+
+
+    /* Head */
+
+    ctx.fillRect(
+        x + 25,
+        y + 3,
+        18,
+        18
+    );
+
+
+    /* Eye */
+
+    ctx.fillStyle =
+        "#111";
+
+    ctx.fillRect(
+        x + 37,
+        y + 8,
+        3,
+        3
+    );
+
+
+    /* Legs */
+
+    ctx.fillStyle =
+        "#333";
+
+    ctx.fillRect(
+        x + 5,
+        y + 30,
+        6,
+        10
+    );
+
+    ctx.fillRect(
+        x + 24,
+        y + 30,
+        6,
+        10
+    );
+
+
+    /* Chicken beak */
+
+    if (
+        animal.type === "chicken"
+    ) {
+
+        ctx.fillStyle =
+            "#f2a900";
+
+        ctx.fillRect(
+            x + 42,
+            y + 12,
+            6,
+            5
+        );
+    }
+}
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera() {
+
+    cameraX =
+        player.x -
+        canvas.width / 2;
+
+
+    cameraY =
+        player.y -
+        canvas.height / 2;
+
+
+    cameraX =
+        Math.max(
+            0,
+            Math.min(
+                cameraX,
+                WORLD_WIDTH * TILE -
+                canvas.width
+            )
+        );
+
+
+    cameraY =
+        Math.max(
+            0,
+            Math.min(
+                cameraY,
+                WORLD_HEIGHT * TILE -
+                canvas.height
+            )
+        );
+}
+
+
+/* =====================================================
+   DRAW
+===================================================== */
+
+function draw() {
+
+    /* Sky */
+
+    ctx.fillStyle =
+        player.sleeping
+        ? "#10152f"
+        : "#87ceeb";
+
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /* Blocks */
+
+    const startX =
+        Math.floor(
+            cameraX / TILE
+        );
+
+
+    const endX =
+        Math.ceil(
+            (cameraX +
+            canvas.width) /
+            TILE
+        );
+
+
+    const startY =
+        Math.floor(
+            cameraY / TILE
+        );
+
+
+    const endY =
+        Math.ceil(
+            (cameraY +
+            canvas.height) /
+            TILE
+        );
+
+
+    for (
+        let y = startY;
+        y < endY;
+        y++
+    ) {
+
+        for (
+            let x = startX;
+            x < endX;
+            x++
+        ) {
+
+            if (
+                x < 0 ||
+                x >= WORLD_WIDTH ||
+                y < 0 ||
+                y >= WORLD_HEIGHT
+            ) {
+                continue;
+            }
+
+
+            const block =
+                world[y][x];
+
+
+            if (
+                block !== AIR
+            ) {
+
+                drawBlock(
+                    block,
+                    x,
+                    y
+                );
+            }
+        }
+    }
+
+
+    /* Animals */
+
+    for (
+        const animal of animals
+    ) {
+
+        drawAnimal(
+            animal
+        );
+    }
+
+
+    /* Player */
+
+    drawPlayer();
+}
+
+
+/* =====================================================
+   HUD
+===================================================== */
+
+function updateHUD() {
+
+    document.getElementById(
+        "health"
+    ).textContent =
+        Math.max(
+            0,
+            Math.floor(
+                player.health
+            )
+        );
+
+
+    document.getElementById(
+        "hunger"
+    ).textContent =
+        Math.floor(
+            player.hunger
+        );
+
+
+    document.getElementById(
+        "diamonds"
+    ).textContent =
+        player.diamonds;
+
+
+    document.getElementById(
+        "apples"
+    ).textContent =
+        player.apples;
+
+
+    document.getElementById(
+        "meat"
+    ).textContent =
+        player.meat;
+}
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+let messageTimer;
+
+
+function showMessage(
+    text
+) {
+
+    const message =
+        document.getElementById(
+            "message"
+        );
+
+
+    message.textContent =
+        text;
+
+
+    clearTimeout(
+        messageTimer
+    );
+
+
+    messageTimer =
+        setTimeout(
+            () => {
+
+                message.textContent =
+                    "";
+
+            },
+            2000
+        );
+}
+
+
+/* =====================================================
+   RESPAWN
+===================================================== */
+
+function respawn() {
+
+    showMessage(
+        "💀 You died! Respawning..."
+    );
+
+
+    player.health = 100;
+
+    player.hunger = 100;
+
+
+    player.x =
+        10 * TILE;
+
+
+    player.y =
+        20 * TILE;
+
+
+    player.vx = 0;
+
+    player.vy = 0;
+}
+
+
+/* =====================================================
+   GAME LOOP
+===================================================== */
+
+function gameLoop() {
+
+    if (
+        gameRunning
+    ) {
+
+        updatePlayer();
+
+        updateAnimals();
+
+        updateCamera();
+
+        draw();
+
+        updateHUD();
+    }
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+
+/* =====================================================
+   START GAME
+===================================================== */
+
+function startGame() {
+
+    const name =
+        document
+            .getElementById(
+                "worldName"
+            )
+            .value
+            .trim();
+
+
+    if (
+        !name
+    ) {
+
+        document
+            .getElementById(
+                "error"
+            )
+            .textContent =
+            "Enter a world name.";
+
+        return;
+    }
+
+
+    document
+        .getElementById(
+            "worldTitle"
+        )
+        .textContent =
+        name;
+
+
+    document
+        .getElementById(
+            "menu"
+        )
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById(
+            "gameUI"
+        )
+        .style.display =
+        "block";
+
+
+    generateWorld();
+
+
+    gameRunning = true;
+
+
+    showMessage(
+        "🌎 World created!"
+    );
+}
+
+
+/* =====================================================
+   HOTBAR CLICK
+===================================================== */
+
+document
+    .querySelectorAll(".slot")
+    .forEach(
+        slot => {
+
+            slot.addEventListener(
+                "click",
+                () => {
+
+                    selectBlock(
+                        Number(
+                            slot.dataset.slot
+                        )
+                    );
+                }
+            );
+        }
+    );
+
+
+/* =====================================================
+   START LOOP
+===================================================== */
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
 ```

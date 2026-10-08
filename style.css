@@ -1,94 +1,51 @@
-/* Reset browser defaults and stretch viewport */
-body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: #87CEEB; /* Sky blue background */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none; /* Prevents text highlighting while clicking frantically */
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Web Sandbox Survival (BabylonJS)</title>
+    
+    <!-- Link to your new style.css file -->
+    <link rel="stylesheet" href="style.css">
 
-#canvas-container {
-    width: 100vw;
-    height: 100vh;
-}
+    <!-- Include Babylon.js Framework from secure CDN -->
+    <script src="https://babylonjs.com"></script>
+</head>
+<body>
 
-/* Crosshair exactly in the absolute center of the viewport */
-#crosshair {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 10px;
-    transform: translate(-50%, -50%);
-    pointer-events: none; /* Stops it from blocking clicks */
-}
+    <div id="blocker">
+        <div id="popup">
+            <strong style="font-size: 24px; color: #4CAF50;">3D JAVASCRIPT VOXEL SURVIVAL</strong><br><br>
+            <strong>W, A, S, D</strong> = Move around | <strong>Mouse</strong> = Look around<br>
+            <strong>Left Click</strong> = Mine Block | <strong>Right Click</strong> = Place Block<br>
+            <strong>Keys 1, 2, 3</strong> = Switch Selected Block Type<br>
+            <strong>E</strong> = Eat Apple | <strong>R</strong> = Sleep | <strong>C</strong> = Craft Stone<br><br>
+            <div class="btn-start">CLICK ANYWHERE TO START</div>
+        </div>
+    </div>
 
-/* Using pseudo-elements to draw crosshair lines without extra images */
-#crosshair::before, #crosshair::after {
-    content: '';
-    position: absolute;
-    background: white;
-}
-#crosshair::before { top: 4px; left: 0; width: 10px; height: 2px; }
-#crosshair::after { top: 0; left: 4px; width: 2px; height: 10px; }
+    <div id="crosshair"></div>
+    
+    <div id="hud">
+        <div>♥ HP: <span id="hp-val">100</span> | 🍖 Hunger: <span id="hunger-val">100</span> | ⚡ Energy: <span id="energy-val">100</span></div>
+        <div style="margin-top: 8px;">Active Block: <span id="selected-val" class="highlight">GRASS</span></div>
+        <div style="margin-top: 4px;">Inventory: 
+            Grass(<span id="inv-grass">10</span>) 
+            Stone(<span id="inv-stone">5</span>) 
+            Wood(<span id="inv-wood">5</span>) 
+            Apple(<span id="inv-apple">3</span>)
+        </div>
+    </div>
 
-/* HUD Styling (Heads-Up Display) */
-#hud {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.6); /* Semi-transparent black */
-    color: #ffffff;
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    line-height: 1.6;
-    pointer-events: none;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
+    <div id="instructions">
+        [1-3] Swap Block | [E] Eat Apple | [R] Sleep | [C] Craft
+    </div>
 
-.stat-bar {
-    font-weight: bold;
-}
+    <canvas id="renderCanvas"></canvas>
 
-.highlight {
-    color: #4CAF50; /* Green highlight for current block */
-}
-
-/* Control helper bar at the bottom */
-#instructions {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 13px;
-    text-align: center;
-    pointer-events: none;
-}
-
-/* Blocker screen overlay when game is paused/not focused */
-#blocker {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    text-align: center;
-    cursor: pointer;
-    z-index: 10;
-}
-
-#instructions-popup {
-    font-size: 20px;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 20px;
-    border-radius: 10px;
-}
+    <!-- Keep the exact script loop logic from the previous Babylon.js reply here -->
+    <script>
+        // ... (Paste all previous BabylonJS JavaScript logic here) ...
+    </script>
+</body>
+</html>

@@ -960,3 +960,132 @@ document.addEventListener("keydown", (event) => {
         closeCraftingTable();
     }
 });
+
+function rightClickAction(x, y) {
+  const target = world[y][x];
+
+  // Right-click an apple to eat it.
+  if (target.type === "apple") {
+    if (player.hp >= player.maxHp) {
+      return say("Your health is already full!");
+    }
+
+    player.hp = Math.min(player.maxHp, player.hp + 20);
+
+    // Remove the apple from the world.
+    world[y][x] = {
+      type: "grass",
+      hp: 2,
+      maxHp: 2
+    };
+
+    say("You ate an apple and restored health!");
+    draw();
+    return;
+  }
+
+  // Right-click a bed to sleep.
+  if (target.type === "bed") {
+    player.hp = player.maxHp;
+
+    say("You slept in the bed and restored your health!");
+    draw();
+    return;
+  }
+
+  say("Nothing to eat or sleep in here!");
+}
+
+const animals = [];
+
+function spawnAnimal(type = "pig") {
+  let x, y;
+
+  do {
+    x = Math.floor(Math.random() * COLS);
+    y = Math.floor(Math.random() * ROWS);
+  } while (
+    Math.hypot(x - player.x, y - player.y) < 3 ||
+    world[y][x].type !== "grass"
+  );
+
+  animals.push({
+    type,
+    x,
+    y,
+    hp: type === "cow" ? 14 : 10,
+    maxHp: type === "cow" ? 14 : 10
+  });
+}
+
+function spawnZombie() {
+  let x, y;
+
+  do {
+    x = Math.floor(Math.random() * COLS);
+    y = Math.floor(Math.random() * ROWS);
+  } while (
+    Math.hypot(x - player.x, y - player.y) < 5 ||
+    world[y][x].type !== "grass"
+  );
+
+  mobs.push({
+    type: "zombie",
+    x,
+    y,
+    hp: 16,
+    maxHp: 16
+  });
+}
+
+// Spawn some creatures.
+for (let i = 0; i < 4; i++) {
+  spawnAnimal("pig");
+  spawnAnimal("cow");
+}
+
+for (let i = 0; i < 3; i++) {
+  spawnZombie();
+}
+
+function drawCreatures() {
+  // Draw animals.
+  for (const a of animals) {
+    ctx.fillStyle = a.type === "cow" ? "#f1eee2" : "#ed9aaf";
+    ctx.fillRect(a.x * TILE + 6, a.y * TILE + 9, 28, 23);
+
+    // Animal face.
+    ctx.fillStyle = "#292929";
+    ctx.fillRect(a.x * TILE + 10, a.y * TILE + 12, 4, 4);
+    ctx.fillRect(a.x * TILE + 25, a.y * TILE + 12, 4, 4);
+
+    // Health bar.
+    ctx.fillStyle = "#333";
+    ctx.fillRect(a.x * TILE + 5, a.y * TILE + 2, 30, 4);
+    ctx.fillStyle = "#64e35d";
+    ctx.fillRect(
+      a.x * TILE + 5, a.y * TILE + 2,
+      30 * Math.max(0, a.hp / a.maxHp), 4
+    );
+  }
+
+  // Draw zombies.
+  for (const z of mobs) {
+    if (z.type !== "zombie") continue;
+
+    ctx.fillStyle = "#378c50";
+    ctx.fillRect(z.x * TILE + 7, z.y * TILE + 5, 26, 30);
+
+    ctx.fillStyle = "#171717";
+    ctx.fillRect(z.x * TILE + 11, z.y * TILE + 12, 5, 5);
+    ctx.fillRect(z.x * TILE + 24, z.y * TILE + 12, 5, 5);
+
+    ctx.fillStyle = "#333";
+    ctx.fillRect(z.x * TILE + 6, z.y * TILE, 28, 4);
+    ctx.fillStyle = "#ff4747";
+    ctx.fillRect(
+      z.x * TILE + 6, z.y * TILE,
+      28 * Math.max(0, z.hp / z.maxHp), 4
+    );
+  }
+}

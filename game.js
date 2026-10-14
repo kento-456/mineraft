@@ -936,3 +936,27 @@ renderer.domElement.addEventListener("mousedown", (event) => {
     // Consume one block
     blockInventory[selectedBlock]--;
 });
+
+document.addEventListener("keydown", (event) => {
+    if (event.repeat) return;
+
+    if (event.key === "1") {
+        equipTool("wooden_pickaxe");
+    }
+
+    if (event.key === "2") {
+        equipTool("diamond_pickaxe");
+    }
+
+    if (event.key === "3") {
+        equipTool("stone_pickaxe");
+    }
+
+    if (event.key === "e") {
+        openCraftingTable();
+    }
+
+    if (event.key === "Escape") {
+        closeCraftingTable();
+    }
+});

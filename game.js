@@ -843,3 +843,96 @@ function craftItem(itemName) {
     console.log("Crafted " + itemName + "!");
     return true;
 }
+
+/*
+  Right-click block placement
+  Requires Three.js and an existing block raycaster.
+*/
+
+// Prevent the browser's right-click menu
+renderer.domElement.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+});
+
+// Selected block to place
+let selectedBlock = "dirt";
+
+// Example block inventory
+// If you already have an inventory, use that instead.
+const blockInventory = {
+    dirt: 20,
+    stone: 10,
+    wood: 10,
+    crafting_table: 1
+};
+
+// Change this to your existing block-placement function.
+// It should create a block at the specified grid position.
+function placeBlockAt(position, blockType) {
+    // Replace this example with your game's block creation logic.
+    console.log("Place", blockType, "at", position);
+}
+
+// Use your existing raycaster and block meshes here.
+renderer.domElement.addEventListener("mousedown", (event) => {
+    // Right mouse button only
+    if (event.button !== 2) return;
+
+    event.preventDefault();
+
+    // Make sure the player has the selected block
+    if (!blockInventory[selectedBlock] ||
+        blockInventory[selectedBlock] <= 0) {
+        console.log("You don't have any " + selectedBlock + "!");
+        return;
+    }
+
+    // Convert mouse position to normalized device coordinates
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Find the block the player is looking at
+    raycaster.setFromCamera(mouse, camera);
+
+    const hits = raycaster.intersectObjects(blockMeshes, false);
+
+    if (hits.length === 0) return;
+
+    const hit = hits[0];
+
+    // Place the new block on the face being targeted
+    const normal = hit.face.normal.clone()
+        .transformDirection(hit.object.matrixWorld);
+
+    const position = hit.object.position.clone()
+        .add(normal);
+
+    // Snap to the block grid
+    position.set(
+        Math.round(position.x),
+        Math.round(position.y),
+        Math.round(position.z)
+    );
+
+    // Only place blocks within 2 blocks of the player
+    const distance = player.position.distanceTo(position);
+
+    if (distance > 2) {
+        console.log("That spot is too far away!");
+        return;
+    }
+
+    // Don't place a block inside the player
+    if (position.distanceTo(player.position) < 1) {
+        console.log("You can't place a block inside yourself!");
+        return;
+    }
+
+    // Create the block using your game's block function
+    placeBlockAt(position, selectedBlock);
+
+    // Consume one block
+    blockInventory[selectedBlock]--;
+});

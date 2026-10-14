@@ -745,3 +745,101 @@ function collides(
         let bx = minX;
         bx <= m
 ```
+
+/*
+  Crafting System
+  Add this to your existing JavaScript game.
+*/
+
+// Player inventory
+const inventory = {
+    wood: 0,
+    sticks: 0,
+    cobblestone: 0,
+    diamonds: 0,
+    crafting_table: 0,
+    wooden_pickaxe: 0,
+    diamond_pickaxe: 0,
+    diamond_sword: 0
+};
+
+// Recipes: ingredients required for each item
+const recipes = {
+    crafting_table: {
+        ingredients: { wood: 4 },
+        result: { crafting_table: 1 }
+    },
+
+    wooden_pickaxe: {
+        ingredients: { wood: 3, sticks: 2 },
+        result: { wooden_pickaxe: 1 }
+    },
+
+    diamond_pickaxe: {
+        ingredients: { diamonds: 3, sticks: 2 },
+        result: { diamond_pickaxe: 1 }
+    },
+
+    diamond_sword: {
+        ingredients: { diamonds: 2, sticks: 1 },
+        result: { diamond_sword: 1 }
+    }
+};
+
+// Set to true only while using a crafting table
+let craftingTableOpen = false;
+
+// Open crafting table
+function openCraftingTable() {
+    if (inventory.crafting_table <= 0) {
+        console.log("You need a crafting table!");
+        return;
+    }
+
+    craftingTableOpen = true;
+    console.log("Crafting table opened!");
+    console.log("Available recipes:", Object.keys(recipes));
+}
+
+// Close crafting table
+function closeCraftingTable() {
+    craftingTableOpen = false;
+}
+
+// Craft an item
+function craftItem(itemName) {
+    const recipe = recipes[itemName];
+
+    if (!recipe) {
+        console.log("Unknown recipe!");
+        return false;
+    }
+
+    // Require the crafting table for every recipe
+    if (!craftingTableOpen) {
+        console.log("Open a crafting table first!");
+        return false;
+    }
+
+    // Check ingredients
+    for (const material in recipe.ingredients) {
+        if ((inventory[material] || 0) < recipe.ingredients[material]) {
+            console.log("Not enough " + material + "!");
+            return false;
+        }
+    }
+
+    // Remove ingredients
+    for (const material in recipe.ingredients) {
+        inventory[material] -= recipe.ingredients[material];
+    }
+
+    // Add crafted item
+    for (const item in recipe.result) {
+        inventory[item] = (inventory[item] || 0)
+            + recipe.result[item];
+    }
+
+    console.log("Crafted " + itemName + "!");
+    return true;
+}

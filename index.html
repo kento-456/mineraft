@@ -2583,3 +2583,538 @@ gameLoop();
 </body>
 </html>
 ```
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block Craft Survival</title>
+<style>
+body {
+  margin: 0;
+  background: #182638;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+h2 { margin: 12px; }
+#hud {
+  padding: 10px;
+  background: #26384b;
+  line-height: 2;
+}
+button {
+  padding: 9px 12px;
+  margin: 3px;
+  border: 2px solid #111;
+  background: #ddd;
+  cursor: pointer;
+  font-weight: bold;
+}
+button:hover { background: #bde8a7; }
+canvas {
+  display: block;
+  margin: 10px auto;
+  border: 4px solid #111;
+  max-width: 96vw;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+.small { font-size: 13px; color: #d5e1ef; }
+</style>
+</head>
+<body>
+<h2>⛏️ Block Craft Survival</h2>
+
+<div id="hud">
+  <div id="stats"></div>
+  <div id="inventory"></div>
+  <div id="equipment"></div>
+</div>
+
+<canvas id="game" width="720" height="480"></canvas>
+
+<div>
+  <button onclick="selectBlock('dirt')">Dirt</button>
+  <button onclick="selectBlock('stone')">Stone</button>
+  <button onclick="selectBlock('wood')">Wood</button>
+  <button onclick="placeCraftingTable()">Place Crafting Table</button>
+</div>
+
+<div>
+  <button onclick="openCrafting()">🛠 Crafting Table</button>
+  <button onclick="craft('wooden_sword')">Wood Sword</button>
+  <button onclick="craft('wooden_pickaxe')">Wood Pickaxe</button>
+  <button onclick="craft('stone_sword')">Stone Sword</button>
+  <button onclick="craft('stone_pickaxe')">Stone Pickaxe</button>
+  <button onclick="craft('diamond_sword')">Diamond Sword</button>
+  <button onclick="craft('diamond_pickaxe')">Diamond Pickaxe</button>
+</div>
+
+<div>
+  <button onclick="equip('wooden_sword')">Equip Wood Sword</button>
+  <button onclick="equip('stone_sword')">Equip Stone Sword</button>
+  <button onclick="equip('diamond_sword')">Equip Diamond Sword</button>
+  <button onclick="equip('wooden_pickaxe')">Equip Wood Pickaxe</button>
+  <button onclick="equip('stone_pickaxe')">Equip Stone Pickaxe</button>
+  <button onclick="equip('diamond_pickaxe')">Equip Diamond Pickaxe</button>
+</div>
+
+<p class="small">
+  WASD / Arrow keys: Move · Left-click: Mine or attack ·
+  Right-click: Place block · Crafting requires a crafting table.
+</p>
+<p id="message">Collect materials and survive!</p>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const TILE = 40;
+const COLS = 18, ROWS = 12;
+
+const colors = {
+  grass: "#55a844",
+  dirt: "#93613c",
+  stone: "#888e98",
+  wood: "#a86b35",
+  crafting_table: "#b77b3c",
+  diamond: "#44e4df"
+};
+
+let world = [];
+let selectedBlock = "dirt";
+let equipped = null;
+let tableOpen = false;
+let kills = 0;
+let message = "Collect materials and survive!";
+
+const player = {
+  x: 3, y: 3, hp: 100, maxHp: 100
+};
+
+const inv = {
+  dirt: 8, stone: 0, wood: 0, sticks: 0,
+  diamond: 0, crafting_table: 0
+};
+
+const tools = {
+  wooden_sword: { type: "sword", damage: 2 },
+  stone_sword: { type: "sword", damage: 4 },
+  diamond_sword: { type: "sword", damage: 8 },
+  wooden_pickaxe: { type: "pickaxe", speed: 2 },
+  stone_pickaxe: { type: "pickaxe", speed: 3 },
+  diamond_pickaxe: { type: "pickaxe", speed: 5 }
+};
+
+const recipes = {
+  crafting_table: { wood: 4 },
+  wooden_sword: { wood: 2, sticks: 1 },
+  wooden_pickaxe: { wood: 3, sticks: 2 },
+  stone_sword: { stone: 2, sticks: 1 },
+  stone_pickaxe: { stone: 3, sticks: 2 },
+  diamond_sword: { diamond: 2, sticks: 1 },
+  diamond_pickaxe: { diamond: 3, sticks: 2 }
+};
+
+const blockHardness = {
+  grass: 2, dirt: 3, wood: 5, stone: 8,
+  diamond: 12, crafting_table: 5
+};
+
+function say(text) {
+  message = text;
+  document.getElementById("message").textContent = text;
+}
+
+function initWorld() {
+  for (let y = 0; y < ROWS; y++) {
+    world[y] = [];
+    for (let x = 0; x < COLS; x++) {
+      let type = "grass";
+      if (Math.random() < 0.17) type = "dirt";
+      if (Math.random() < 0.10) type = "stone";
+      if (Math.random() < 0.07) type = "wood";
+      if (Math.random() < 0.035) type = "diamond";
+
+      world[y][x] = {
+        type,
+        hp: blockHardness[type],
+        maxHp: blockHardness[type]
+      };
+    }
+  }
+}
+
+const mobs = [];
+
+function spawnMob() {
+  let x, y;
+  do {
+    x = Math.floor(Math.random() * COLS);
+    y = Math.floor(Math.random() * ROWS);
+  } while (Math.hypot(x - player.x, y - player.y) < 4);
+
+  mobs.push({ x, y, hp: 10, maxHp: 10 });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const b = world[y][x];
+      ctx.fillStyle = colors[b.type] || "#55a844";
+      ctx.fillRect(x*TILE, y*TILE, TILE-1, TILE-1);
+
+      // Show cracks / block damage
+      if (b.hp < b.maxHp) {
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(x*TILE, y*TILE, TILE-1, TILE-1);
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.fillText(Math.ceil(b.hp), x*TILE+13, y*TILE+23);
+      }
+
+      if (b.type === "diamond") {
+        ctx.fillStyle = "#d0ffff";
+        ctx.fillRect(x*TILE+13, y*TILE+13, 14, 14);
+      }
+      if (b.type === "crafting_table") {
+        ctx.fillStyle = "#68401f";
+        ctx.fillRect(x*TILE+5, y*TILE+5, 30, 9);
+      }
+
+      ctx.strokeStyle = "rgba(0,0,0,.12)";
+      ctx.strokeRect(x*TILE, y*TILE, TILE, TILE);
+    }
+  }
+
+  // Mobs
+  for (const m of mobs) {
+    ctx.fillStyle = "#d94c4c";
+    ctx.fillRect(m.x*TILE+7, m.y*TILE+6, 26, 28);
+    ctx.fillStyle = "white";
+    ctx.fillRect(m.x*TILE+12, m.y*TILE+12, 5, 5);
+    ctx.fillRect(m.x*TILE+23, m.y*TILE+12, 5, 5);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(m.x*TILE+13, m.y*TILE+13, 3, 3);
+    ctx.fillRect(m.x*TILE+24, m.y*TILE+13, 3, 3);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(m.x*TILE+6, m.y*TILE-5, 28, 4);
+    ctx.fillStyle = "#70ed5c";
+    ctx.fillRect(m.x*TILE+6, m.y*TILE-5,
+      28 * Math.max(0, m.hp/m.maxHp), 4);
+  }
+
+  // Player
+  ctx.fillStyle = "#397ee5";
+  ctx.fillRect(player.x*TILE+7, player.y*TILE+5, 26, 30);
+  ctx.fillStyle = "#ffd2a1";
+  ctx.fillRect(player.x*TILE+11, player.y*TILE+3, 18, 13);
+
+  ctx.fillStyle = "white";
+  ctx.font = "14px Arial";
+  ctx.fillText("♥ " + player.hp, 8, 18);
+
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById("stats").textContent =
+    `❤️ Health: ${player.hp}/${player.maxHp} | ☠ Mobs killed: ${kills}`;
+
+  document.getElementById("inventory").textContent =
+    "Inventory: " + Object.entries(inv)
+      .map(([k,v]) => `${k}: ${v}`).join(" | ");
+
+  document.getElementById("equipment").textContent =
+    "Equipped: " + (equipped || "Bare hands") +
+    " | Selected block: " + selectedBlock;
+}
+
+function inReach(x, y) {
+  return Math.hypot(x - player.x, y - player.y) <= 2;
+}
+
+function selectBlock(type) {
+  selectedBlock = type;
+  say("Selected " + type);
+  draw();
+}
+
+function equip(name) {
+  if (!tools[name]) return say("That is not a tool.");
+  if (!inv[name] || inv[name] < 1)
+    return say("Craft " + name + " first!");
+
+  equipped = name;
+  say("Equipped " + name);
+  draw();
+}
+
+function openCrafting() {
+  const nearTable = world.some((row, y) =>
+    row.some((b, x) =>
+      b.type === "crafting_table" && inReach(x,y)
+    )
+  );
+
+  if (!nearTable) {
+    tableOpen = false;
+    return say("Place a crafting table nearby first!");
+  }
+
+  tableOpen = true;
+  say("Crafting table open! Choose a recipe below.");
+}
+
+function craft(name) {
+  if (!tableOpen) {
+    openCrafting();
+    if (!tableOpen) return;
+  }
+
+  const recipe = recipes[name];
+  if (!recipe) return say("Unknown recipe.");
+
+  for (const item in recipe) {
+    if ((inv[item] || 0) < recipe[item])
+      return say("Not enough " + item + "!");
+  }
+
+  for (const item in recipe) inv[item] -= recipe[item];
+  inv[name] = (inv[name] || 0) + 1;
+
+  if (name === "crafting_table") {
+    say("Crafted a crafting table! Select Place Crafting Table.");
+  } else {
+    say("Crafted " + name + "! Equip it to use it.");
+  }
+
+  draw();
+}
+
+function placeCraftingTable() {
+  if (!inv.crafting_table) return say("Craft a table first!");
+
+  const pos = findPlacePosition();
+  if (!pos) return say("Move to an empty nearby tile.");
+
+  world[pos.y][pos.x] = {
+    type: "crafting_table", hp: 5, maxHp: 5
+  };
+  inv.crafting_table--;
+  say("Crafting table placed! Stand next to it and click Crafting Table.");
+  draw();
+}
+
+function findPlacePosition() {
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  for (const [dx,dy] of dirs) {
+    const x = player.x+dx, y = player.y+dy;
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) continue;
+    if (!inReach(x,y)) continue;
+    if (world[y][x].type === "grass") return {x,y};
+  }
+  return null;
+}
+
+function removeBlock(x, y) {
+  const b = world[y][x];
+  inv[b.type] = (inv[b.type] || 0) + 1;
+  if (b.type === "stone") inv.stone++;
+  if (b.type === "diamond") inv.diamond++;
+
+  world[y][x] = { type:"grass", hp:2, maxHp:2 };
+}
+
+function mineBlock(x, y) {
+  if (!inReach(x,y)) return say("Too far away! Blocks must be within 2 tiles.");
+
+  const b = world[y][x];
+
+  if (b.type === "crafting_table") {
+    tableOpen = false;
+  }
+
+  const stat = tools[equipped];
+  const power = stat && stat.type === "pickaxe" ? stat.speed : 1;
+
+  // Blocks need multiple hits. Pickaxes make progress faster.
+  b.hp -= power;
+
+  if (b.hp <= 0) {
+    removeBlock(x,y);
+    say("Block broken! Collected " + b.type + ".");
+  } else {
+    say("Mining " + b.type + ": " + Math.ceil(b.hp) +
+      " durability left.");
+  }
+}
+
+function attackMob(m) {
+  if (!inReach(m.x,m.y)) return say("Mob is too far away!");
+
+  const stat = tools[equipped];
+  const damage = stat && stat.type === "sword" ? stat.damage : 1;
+
+  m.hp -= damage;
+
+  if (m.hp <= 0) {
+    const index = mobs.indexOf(m);
+    if (index !== -1) mobs.splice(index,1);
+    kills++;
+    inv.dirt += 1;
+    say("Mob defeated! +1 dirt.");
+    spawnMob();
+  } else {
+    say("Hit mob for " + damage + " damage!");
+  }
+}
+
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+canvas.addEventListener("mousedown", e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX-rect.left) * canvas.width /
+    rect.width / TILE);
+  const y = Math.floor((e.clientY-rect.top) * canvas.height /
+    rect.height / TILE);
+
+  if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return;
+
+  if (e.button === 0) {
+    const mob = mobs.find(m => m.x === x && m.y === y);
+    if (mob) attackMob(mob);
+    else mineBlock(x,y);
+  }
+
+  if (e.button === 2) {
+    if (!inReach(x,y)) return say("Too far away to place a block!");
+    if (!inv[selectedBlock]) return say("No " + selectedBlock + " left!");
+    if (Math.hypot(x-player.x,y-player.y) < 1)
+      return say("Can't place a block on yourself!");
+
+    // Only place on empty grass tiles.
+    if (world[y][x].type !== "grass")
+      return say("That space is occupied!");
+
+    world[y][x] = {
+      type:selectedBlock,
+      hp:blockHardness[selectedBlock] || 3,
+      maxHp:blockHardness[selectedBlock] || 3
+    };
+    inv[selectedBlock]--;
+    say("Block placed!");
+  }
+
+  draw();
+});
+
+document.addEventListener("keydown", e => {
+  const key = e.key.toLowerCase();
+  let dx = 0, dy = 0;
+
+  if (key === "w" || key === "arrowup") dy = -1;
+  if (key === "s" || key === "arrowdown") dy = 1;
+  if (key === "a" || key === "arrowleft") dx = -1;
+  if (key === "d" || key === "arrowright") dx = 1;
+
+  const x = player.x+dx, y = player.y+dy;
+
+  if (dx || dy) {
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return;
+
+    if (world[y][x].type === "crafting_table" ||
+        world[y][x].type === "stone" ||
+        world[y][x].type === "wood" ||
+        world[y][x].type === "diamond" ||
+        world[y][x].type === "dirt") {
+      return say("That tile is blocked! Mine it first.");
+    }
+
+    player.x = x;
+    player.y = y;
+    tableOpen = false;
+    mobTurn();
+    draw();
+  }
+});
+
+function mobTurn() {
+  for (const m of mobs) {
+    const dist = Math.hypot(m.x-player.x,m.y-player.y);
+
+    if (dist <= 1.5) {
+      player.hp -= 5;
+      say("A mob hit you for 5 damage!");
+
+      if (player.hp <= 0) {
+        player.hp = 0;
+        say("You died! Refresh to start again.");
+        document.onkeydown = null;
+      }
+    } else if (dist < 6 && Math.random() < 0.6) {
+      const dx = Math.sign(player.x-m.x);
+      const dy = Math.sign(player.y-m.y);
+
+      const nx = m.x + (Math.abs(player.x-m.x) >=
+        Math.abs(player.y-m.y) ? dx : 0);
+      const ny = m.y + (Math.abs(player.x-m.x) <
+        Math.abs(player.y-m.y) ? dy : 0);
+
+      if (nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS &&
+          world[ny][nx].type === "grass" &&
+          !(nx === player.x && ny === player.y)) {
+        m.x = nx;
+        m.y = ny;
+      }
+    }
+  }
+}
+
+initWorld();
+for (let i=0; i<5; i++) spawnMob();
+draw();
+</script>
+</body>
+</html>
+
+function mineBlock(x, y) {
+  if (!inReach(x, y)) {
+    return say("Too far away! Get within 2 tiles.");
+  }
+
+  const b = world[y][x];
+
+  // Never mine an empty tile.
+  if (b.type === "grass" && b.hp <= 0) {
+    return;
+  }
+
+  // Pickaxes mine faster than bare hands.
+  const stat = tools[equipped];
+  let power = 1;
+
+  if (stat && stat.type === "pickaxe") {
+    power = stat.speed;
+  }
+
+  // Apply mining damage.
+  b.hp -= power;
+
+  if (b.hp <= 0) {
+    const brokenType = b.type;
+    removeBlock(x, y);
+    say("You mined " + brokenType + "!");
+  } else {
+    say(
+      "Mining " + b.type + " — " +
+      Math.ceil(b.hp) + " durability remaining."
+    );
+  }
+
+  draw();
+}
+      

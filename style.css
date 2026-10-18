@@ -1,454 +1,57 @@
-```css
+/* Reset basic margins and borders */
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-html,
+/* Base body layout and dark styling */
 body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
     overflow: hidden;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    background: #87ceeb;
 }
 
-
-/* =========================================
-   GAME
-========================================= */
-
-#game {
-    width: 100%;
-    height: 100%;
-    display: none;
+/* Main title styling */
+h1 {
+    margin-bottom: 15px;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: #c6c6c6;
+    text-shadow: 2px 2px #000000;
 }
 
-
-/* =========================================
-   START SCREEN
-========================================= */
-
-#startScreen {
-
-    position: fixed;
-
-    inset: 0;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    background:
-        linear-gradient(
-            rgba(0,0,0,.25),
-            rgba(0,0,0,.65)
-        ),
-        #4c8f3b;
-
-    z-index: 100;
-}
-
-
-/* Fake Minecraft landscape */
-
-#startScreen::before {
-
-    content: "";
-
-    position: absolute;
-
-    inset: 0;
-
-    background:
-        linear-gradient(
-            to bottom,
-            #63b5e8 0%,
-            #87ceeb 55%,
-            #5b9e3b 56%,
-            #3d702b 100%
-        );
-
-    z-index: -1;
-}
-
-
-/* =========================================
-   MENU
-========================================= */
-
-.menu {
-
-    width: min(
-        430px,
-        calc(100% - 30px)
-    );
-
-    padding: 35px;
-
-    text-align: center;
-
-    background:
-        rgba(20,20,20,.88);
-
-    border: 4px solid #111;
-
-    box-shadow:
-        0 8px 0 #000,
-        0 15px 30px rgba(0,0,0,.5);
-
-    color: white;
-}
-
-
-/* =========================================
-   TITLE
-========================================= */
-
-.menu h1 {
-
-    margin: 0;
-
-    font-size: clamp(
-        35px,
-        8vw,
-        58px
-    );
-
-    letter-spacing: 2px;
-
-    color: #fff;
-
-    text-shadow:
-        4px 4px 0 #333,
-        6px 6px 0 #111;
-}
-
-.menu h1 span {
-
-    display: block;
-
-    font-size: .45em;
-
-    color: #75d957;
-
-    text-shadow:
-        3px 3px 0 #1d5517;
-}
-
-
-.subtitle {
-
-    margin:
-        10px 0 30px;
-
-    color: #ccc;
-}
-
-
-/* =========================================
-   INPUT
-========================================= */
-
-.menu label {
-
-    display: block;
-
-    text-align: left;
-
-    margin-bottom: 7px;
-
-    font-weight: bold;
-}
-
-.menu input {
-
-    width: 100%;
-
-    height: 48px;
-
-    padding: 0 12px;
-
-    border: 3px solid #555;
-
-    background: #222;
-
-    color: white;
-
-    font-size: 16px;
-
-    outline: none;
-}
-
-.menu input:focus {
-
-    border-color: #79d84b;
-}
-
-
-/* =========================================
-   BUTTONS
-========================================= */
-
-.menu button {
-
-    width: 100%;
-
-    min-height: 50px;
-
-    margin-top: 15px;
-
-    border: 3px solid #222;
-
-    background: #5eaa3d;
-
-    color: white;
-
-    font-size: 17px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-
-    box-shadow:
-        inset 0 -5px rgba(0,0,0,.2);
-
-    transition:
-        transform .08s,
-        background .08s;
-}
-
-.menu button:hover {
-
-    background: #71c54a;
-}
-
-.menu button:active {
-
-    transform: translateY(3px);
-
-    box-shadow: none;
-}
-
-#randomWorld {
-
-    background: #555;
-}
-
-#randomWorld:hover {
-
-    background: #666;
-}
-
-
-#startMessage {
-
-    min-height: 20px;
-
-    margin-top: 15px;
-
-    color: #ffcc66;
-}
-
-
-/* =========================================
-   CROSSHAIR
-========================================= */
-
-#crosshair {
-
-    position: fixed;
-
-    top: 50%;
-    left: 50%;
-
-    transform:
-        translate(-50%, -50%);
-
-    color: white;
-
-    font-size: 27px;
-
-    font-weight: bold;
-
-    text-shadow:
-        2px 2px 3px black;
-
-    pointer-events: none;
-
-    z-index: 20;
-}
-
-
-/* =========================================
-   HUD
-========================================= */
-
-#hud {
-
-    position: fixed;
-
-    top: 15px;
-    left: 15px;
-
-    padding: 12px;
-
-    min-width: 180px;
-
-    background:
-        rgba(0,0,0,.6);
-
-    border: 2px solid
-        rgba(255,255,255,.2);
-
-    border-radius: 6px;
-
-    color: white;
-
-    font-size: 16px;
-
-    line-height: 1.7;
-
-    user-select: none;
-
-    z-index: 20;
-}
-
-.world-name {
-
-    margin-bottom: 7px;
-
-    color: #8cff5b;
-
-    font-weight: bold;
-
-    border-bottom:
-        1px solid
-        rgba(255,255,255,.3);
-}
-
-.controls {
-
-    margin-top: 8px;
-
-    padding-top: 7px;
-
-    border-top:
-        1px solid
-        rgba(255,255,255,.2);
-
-    color: #ddd;
-
-    font-size: 12px;
-
-    line-height: 1.5;
-}
-
-
-/* =========================================
-   HOTBAR
-========================================= */
-
-#hotbar {
-
-    position: fixed;
-
-    bottom: 18px;
-    left: 50%;
-
-    transform:
-        translateX(-50%);
-
-    display: flex;
-
-    gap: 5px;
-
-    z-index: 20;
-}
-
-.slot {
-
-    width: 55px;
-    height: 55px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
+/* Container for the game window */
+.game-container {
     position: relative;
-
-    background:
-        rgba(0,0,0,.65);
-
-    border:
-        3px solid #555;
-
-    color: white;
-
-    font-size: 25px;
-
-    user-select: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    border: 4px solid #4a4a4a;
+    border-radius: 4px;
+    background-color: #87CEEB; /* Matches sky background before canvas loads */
 }
 
-.slot.selected {
-
-    border-color: white;
-
-    box-shadow:
-        0 0 0 2px #777;
+/* Canvas setup */
+canvas {
+    display: block;
 }
 
-.slot small {
-
-    position: absolute;
-
-    right: 4px;
-    bottom: 2px;
-
-    font-size: 11px;
-
-    color: white;
+/* User Interface Hotbar overlay */
+#ui {
+    margin-top: 15px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #e0e0e0;
+    padding: 12px 20px;
+    border-radius: 6px;
+    border: 2px solid #333333;
+    font-size: 14px;
+    text-align: center;
+    pointer-events: none;
+    max-width: 800px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
-
-
-/* =========================================
-   MOBILE
-========================================= */
-
-@media (max-width: 600px) {
-
-    .menu {
-
-        padding: 25px 20px;
-    }
-
-    #hud {
-
-        font-size: 13px;
-
-        min-width: 150px;
-    }
-
-    .slot {
-
-        width: 45px;
-        height: 45px;
-
-        font-size: 20px;
-    }
-
-    #hotbar {
-
-        bottom: 10px;
-
-        gap: 3px;
-    }
-}
-```

@@ -3117,4 +3117,166 @@ function mineBlock(x, y) {
 
   draw();
 }
-      
+     
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terra Mine</title>
+  <style>
+    body {
+      background: #171c27;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 25px;
+    }
+
+    .game {
+      max-width: 450px;
+      margin: auto;
+      background: #252d3b;
+      padding: 25px;
+      border-radius: 16px;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+    }
+
+    button {
+      background: #36a269;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      margin: 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #278451;
+    }
+
+    #log {
+      background: #111722;
+      padding: 15px;
+      border-radius: 10px;
+      min-height: 60px;
+      margin-top: 15px;
+    }
+
+    #inventory {
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <h1>⛏️ Terra Mine</h1>
+    <p>Dig deeper. Discover rare ores. Get rich!</p>
+
+    <div class="stats">
+      <div>💰 Money<br><strong id="money">$0</strong></div>
+      <div>📏 Depth<br><strong id="depth">0 m</strong></div>
+    </div>
+
+    <h2 id="mine">🪨 The Mine</h2>
+
+    <button onclick="dig()">⛏️ Dig</button>
+    <button onclick="sell()">💰 Sell Ores</button>
+
+    <h3>🎒 Inventory</h3>
+    <div id="inventory">Empty</div>
+
+    <div id="log">Ready to start mining!</div>
+  </div>
+
+  <script>
+    let money = 0;
+    let depth = 0;
+    let inventory = [];
+
+    const ores = [
+      { name: "Stone", value: 1, chance: 45 },
+      { name: "Coal", value: 5, chance: 27 },
+      { name: "Iron", value: 15, chance: 17 },
+      { name: "Gold", value: 50, chance: 8 },
+      { name: "Diamond", value: 200, chance: 3 }
+    ];
+
+    function findOre() {
+      const total = ores.reduce((sum, ore) => sum + ore.chance, 0);
+      let roll = Math.random() * total;
+
+      for (const ore of ores) {
+        roll -= ore.chance;
+        if (roll < 0) return ore;
+      }
+
+      return ores[0];
+    }
+
+    function dig() {
+      depth += Math.floor(Math.random() * 5) + 1;
+
+      const ore = findOre();
+      inventory.push(ore);
+
+      document.getElementById("log").textContent =
+        `You mined ${ore.name}! Value: $${ore.value}`;
+
+      document.getElementById("mine").textContent =
+        depth >= 100 ? "💎 Deep Mine" :
+        depth >= 50 ? "🌋 Underground Cavern" :
+        "🪨 The Mine";
+
+      update();
+    }
+
+    function sell() {
+      if (inventory.length === 0) {
+        document.getElementById("log").textContent =
+          "Your inventory is empty!";
+        return;
+      }
+
+      const earnings = inventory.reduce(
+        (sum, ore) => sum + ore.value, 0
+      );
+
+      money += earnings;
+      inventory = [];
+
+      document.getElementById("log").textContent =
+        `Sold your ores for $${earnings}!`;
+
+      update();
+    }
+
+    function update() {
+      document.getElementById("money").textContent = "$" + money;
+      document.getElementById("depth").textContent = depth + " m";
+
+      if (inventory.length === 0) {
+        document.getElementById("inventory").textContent = "Empty";
+        return;
+      }
+
+      const counts = {};
+      inventory.forEach(ore => {
+        counts[ore.name] = (counts[ore.name] || 0) + 1;
+      });
+
+      document.getElementById("inventory").innerHTML =
+        Object.entries(counts)
+          .map(([name, count]) => `${name} × ${count}`)
+          .join("<br>");
+    }
+  </script>
+</body>
+</html> 

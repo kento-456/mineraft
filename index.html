@@ -59,3 +59,58 @@ const ctx = canvas.getContext("2d");
 <canvas id="game"></canvas>
 <script src="game.js"></script>
 <script src="game.js"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Minecraft 2D</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>⛏️ Mini Minecraft 2D</h1>
+    <p>Explore, mine, build, and survive!</p>
+  </header>
+
+  <main>
+    <div class="stats">
+      <span id="day">☀️ Day 1</span>
+      <span id="position">Position: 0, 0</span>
+    </div>
+
+    <div class="game-container">
+      <canvas id="game" width="960" height="540"></canvas>
+    </div>
+
+    <div class="inventory">
+      <h3>🎒 Inventory</h3>
+      <div id="items"></div>
+    </div>
+
+    <div class="help">
+      <h3>🎮 Controls</h3>
+      <p><b>A / D</b> or <b>← / →</b> — Move</p>
+      <p><b>W</b> or <b>Space</b> — Jump</p>
+      <p><b>Left-click</b> — Use tool or mine</p>
+      <p><b>Right-click</b> — Place a block</p>
+      <p><b>1–9</b> — Select an item</p>
+      <p><b>R</b> — Generate a new world</p>
+
+      <p class="mobile-note">
+        On touchscreens, tap to interact.
+        Use the buttons below to move and jump.
+      </p>
+
+      <div class="mobile-controls">
+        <button id="left">◀</button>
+        <button id="jump">⬆ Jump</button>
+        <button id="right">▶</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

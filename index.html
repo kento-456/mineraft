@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paper Minecraft - Fixed Web Edition</title>
+    <title>2D Paper Minecraft Sandbox</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,50 +22,251 @@
             overflow: hidden;
         }
         h1 {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             font-size: 24px;
-            letter-spacing: 1px;
             color: #c6c6c6;
             text-shadow: 2px 2px #000000;
         }
-        .game-container {
+        .container {
             position: relative;
-            width: 485px;
-            height: 402px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
             border: 4px solid #4a4a4a;
             border-radius: 4px;
-            background-color: #000;
         }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+        canvas {
+            display: block;
+            background-color: #87CEEB; /* Sky color */
         }
-        .controls-hint {
+        #ui {
             margin-top: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 2px solid #333333;
             font-size: 14px;
-            color: #888888;
             text-align: center;
+            max-width: 800px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Paper Minecraft</h1>
+    <h1>Paper Minecraft Sandbox</h1>
 
-    <div class="game-container">
-        <!-- Uses TurboWarp's public player embed to guarantee the project bypasses frame-blocking rules -->
-        <iframe src="https://turbowarp.org" 
-                allowtransparency="true" 
-                allowfullscreen="true" 
-                scrolling="no">
-        </iframe>
+    <div class="container">
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+    </div>
+    
+    <div id="ui">
+        <strong>Controls:</strong> A / D or Arrows = Move | W, Space, Up = Jump <br>
+        <strong>Mouse:</strong> Left Click = Break Block | Right Click = Place Block <br>
+        <strong>Hotbar:</strong> Press 1 = Grass | 2 = Dirt | 3 = Stone | 4 = Wood Planks
     </div>
 
-    <div class="controls-hint">
-        Click the Green Flag inside the window to start playing!
-    </div>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const ui = document.getElementById("ui");
 
+        // Game constants
+        const BLOCK_SIZE = 32;
+        const GRAVITY = 0.25;
+        const WORLD_WIDTH = 150; // Total horizontal blocks
+        const WORLD_HEIGHT = 40;  // Total vertical blocks
+
+        const BLOCKS = { AIR: 0, GRASS: 1, DIRT: 2, STONE: 3, PLANK: 4 };
+        const BLOCK_COLORS = ["transparent", "#558B2F", "#8D6E63", "#757575", "#D7CCC8"];
+        const BLOCK_NAMES = ["Air", "Grass Block", "Dirt Block", "Stone Block", "Wood Planks"];
+
+        // Global states
+        let world = [];
+        let selectedBlock = BLOCKS.GRASS;
+        let keys = {};
+
+        // Player physics blueprint
+        let player = {
+            x: 400,
+            y: 100,
+            width: 22,
+            height: 54,
+            vx: 0,
+            vy: 0,
+            speed: 3.5,
+            jumpForce: -6.5,
+            grounded: false
+        };
+
+        // Procedural world layout setup
+        function initWorld() {
+            for (let x = 0; x < WORLD_WIDTH; x++) {
+                world[x] = [];
+                // Create a smooth rolling wave landscape
+                let surfaceY = Math.floor(10 + Math.sin(x * 0.08) * 3 + Math.cos(x * 0.04) * 2);
+                
+                for (let y = 0; y < WORLD_HEIGHT; y++) {
+                    if (y < surfaceY) {
+                        world[x][y] = BLOCKS.AIR;
+                    } else if (y === surfaceY) {
+                        world[x][y] = BLOCKS.GRASS;
+                    } else if (y > surfaceY && y < surfaceY + 4) {
+                        world[x][y] = BLOCKS.DIRT;
+                    } else {
+                        world[x][y] = BLOCKS.STONE;
+                    }
+                }
+            }
+            // Spawn player safely above terrain center point
+            player.x = (WORLD_WIDTH / 2) * BLOCK_SIZE;
+            let spawnCol = Math.floor(player.x / BLOCK_SIZE);
+            for (let y = 0; y < WORLD_HEIGHT; y++) {
+                if (world[spawnCol][y] !== BLOCKS.AIR) {
+                    player.y = (y - 3) * BLOCK_SIZE;
+                    break;
+                }
+            }
+        }
+
+        // Fetch safety boundary check
+        function getBlock(bx, by) {
+            if (bx >= 0 && bx < WORLD_WIDTH && by >= 0 && by < WORLD_HEIGHT) {
+                return world[bx][by];
+            }
+            return BLOCKS.STONE; // Solid border walls
+        }
+
+        // Axis-Aligned Boundary Collision Engine
+        function isColliding(px, py) {
+            let left = Math.floor(px / BLOCK_SIZE);
+            let right = Math.floor((px + player.width) / BLOCK_SIZE);
+            let top = Math.floor(py / BLOCK_SIZE);
+            let bottom = Math.floor((py + player.height) / BLOCK_SIZE);
+
+            for (let bx = left; bx <= right; bx++) {
+                for (let by = top; by <= bottom; by++) {
+                    if (getBlock(bx, by) !== BLOCKS.AIR) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Core tick updates
+        function update() {
+            player.vx = 0;
+            if (keys['KeyA'] || keys['ArrowLeft']) player.vx = -player.speed;
+            if (keys['KeyD'] || keys['ArrowRight']) player.vx = player.speed;
+
+            // X-Axis collision physics
+            player.x += player.vx;
+            if (isColliding(player.x, player.y)) {
+                player.x -= player.vx;
+            }
+
+            // Y-Axis gravity physics
+            player.vy += GRAVITY;
+            player.y += player.vy;
+            player.grounded = false;
+
+            if (isColliding(player.x, player.y)) {
+                player.y -= player.vy;
+                if (player.vy > 0) {
+                    player.grounded = true;
+                }
+                player.vy = 0;
+            }
+
+            // Upward vertical execution
+            if ((keys['KeyW'] || keys['Space'] || keys['ArrowUp']) && player.grounded) {
+                player.vy = player.jumpForce;
+                player.grounded = false;
+            }
+        }
+
+        // Camera calculations and frame draws
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Dynamically lock camera map translation frame coordinates onto player character center
+            let cameraX = canvas.width / 2 - player.x - player.width / 2;
+            let cameraY = canvas.height / 2 - player.y - player.height / 2;
+
+            let startX = Math.max(0, Math.floor(-cameraX / BLOCK_SIZE));
+            let endX = Math.min(WORLD_WIDTH - 1, startX + Math.ceil(canvas.width / BLOCK_SIZE) + 1);
+            let startY = Math.max(0, Math.floor(-cameraY / BLOCK_SIZE));
+            let endY = Math.min(WORLD_HEIGHT - 1, startY + Math.ceil(canvas.height / BLOCK_SIZE) + 1);
+
+            // Draw landscape blocks
+            for (let x = startX; x <= endX; x++) {
+                for (let y = startY; y <= endY; y++) {
+                    let block = world[x][y];
+                    if (block !== BLOCKS.AIR) {
+                        ctx.fillStyle = BLOCK_COLORS[block];
+                        ctx.fillRect(x * BLOCK_SIZE + cameraX, y * BLOCK_SIZE + cameraY, BLOCK_SIZE, BLOCK_SIZE);
+                        
+                        // Soft outline grids
+                        ctx.strokeStyle = "rgba(0,0,0,0.15)";
+                        ctx.strokeRect(x * BLOCK_SIZE + cameraX, y * BLOCK_SIZE + cameraY, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                }
+            }
+
+            // Render Steve avatar bounding box
+            ctx.fillStyle = "#E91E63"; // Vivid character pink box tracker
+            ctx.fillRect(player.x + cameraX, player.y + cameraY, player.width, player.height);
+        }
+
+        // Game loops
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Input monitoring event triggers
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.key === '1') selectedBlock = BLOCKS.GRASS;
+            if (e.key === '2') selectedBlock = BLOCKS.DIRT;
+            if (e.key === '3') selectedBlock = BLOCKS.STONE;
+            if (e.key === '4') selectedBlock = BLOCKS.PLANK;
+        });
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        // Click tracking handles world map terrain modification matrix values
+        canvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let clickX = e.clientX - rect.left;
+            let clickY = e.clientY - rect.top;
+
+            let cameraX = canvas.width / 2 - player.x - player.width / 2;
+            let cameraY = canvas.height / 2 - player.y - player.height / 2;
+
+            let targetGridX = Math.floor((clickX - cameraX) / BLOCK_SIZE);
+            let targetGridY = Math.floor((clickY - cameraY) / BLOCK_SIZE);
+
+            if (targetGridX >= 0 && targetGridX < WORLD_WIDTH && targetGridY >= 0 && targetGridY < WORLD_HEIGHT) {
+                if (e.button === 0) {
+                    // Left Click destroys block
+                    world[targetGridX][targetGridY] = BLOCKS.AIR;
+                } else if (e.button === 2) {
+                    // Right Click places block if it is empty air space
+                    if (world[targetGridX][targetGridY] === BLOCKS.AIR) {
+                        world[targetGridX][targetGridY] = selectedBlock;
+                    }
+                }
+            }
+        });
+
+        // Suppresses right click text list overlay window options context menu
+        canvas.oncontextmenu = (e) => e.preventDefault();
+
+        // Boot execution sequence
+        initWorld();
+        loop();
+    </script>
 </body>
 </html>
+

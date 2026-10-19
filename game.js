@@ -612,3 +612,135 @@ function gameLoop() {
 
 generateWorld();
 gameLoop();
+canvas.addEventListener("pointerdown", event => {
+  const { x, y } = getTarget(event);
+
+  if (
+    x < 0 || x >= COLS ||
+    y < 0 || y >= ROWS
+  ) return;
+
+  const tool = HOTBAR[selected];
+
+  // Right-click: place a block
+  if (event.button === 2) {
+    if (typeof tool !== "number") return;
+    if (!withinReach(x, y)) return;
+
+    const id = tool;
+
+    if (world[y][x] !== 0 || inventory[id] <= 0) return;
+
+    const bx = x * TILE;
+    const by = y * TILE;
+
+    const overlapsPlayer =
+      bx < player.x + player.w &&
+      bx + TILE > player.x &&
+      by < player.y + player.h &&
+      by + TILE > player.y;
+
+    if (overlapsPlayer) return;
+
+    world[y][x] = id;
+    inventory[id]--;
+    updateInventory();
+  }
+
+  // Left-click: use the selected tool
+  if (event.button === 0) {
+    if (tool === "sword") {
+      // Attack the closest animal in range
+      const targetX = x * TILE + TILE / 2;
+      const targetY = y * TILE + TILE / 2;
+
+      const animal = animals.find(a => {
+        const ax = a.x + a.w / 2;
+        const ay = a.y + a.h / 2;
+
+        return Math.hypot(ax - targetX, ay - targetY) < 40 &&
+          Math.hypot(
+            ax - (player.x + player.w / 2),
+            ay - (player.y + player.h / 2)
+          ) < TILE * 3;
+      });
+
+      if (animal) {
+        animal.hp--;
+
+        if (animal.hp <= 0) {
+          animals = animals.filter(a => a !== animal);
+        }
+      }
+
+      return;
+    }
+
+    // Only the pickaxe mines blocks
+    if (tool !== "pickaxe") return;
+    if (!withinReach(x, y)) return;
+
+    const id = world[y][x];
+    if (id === 0) return;
+
+    world[y][x] = 0;
+
+    if (id === 1) {
+      inventory[2] = (inventory[2] || 0) + 1;
+    } else {
+      inventory[id] = (inventory[id] || 0) + 1;
+    }
+
+    updateInventory();
+  }
+});
+const HOTBAR = [
+  "pickaxe", "sword",
+  2, 3, 4, 5, 6, 7, 8
+];
+
+const TOOL_NAMES = {
+  pickaxe: "⛏️ Pickaxe",
+  sword: "⚔️ Sword"
+};
+// Animal health bar
+ctx.fillStyle = "#333";
+ctx.fillRect(x, y - 7, 24, 4);
+
+ctx.fillStyle = "#ef4444";
+ctx.fillRect(x, y - 7, 24, 4);
+
+ctx.fillStyle = "#22c55e";
+ctx.fillRect(x, y - 7, 24 * (a.hp / 3), 4);
+if (key >= "1" && key <= "6") {
+  selected = Number(key) - 1;
+  updateInventory();
+}
+function drawZombie(z) {
+  const x = z.x - cameraX;
+  const y = z.y - cameraY;
+
+  // Green head
+  ctx.fillStyle = "#579447";
+  ctx.fillRect(x + 3, y, 14, 11);
+
+  // Blue shirt
+  ctx.fillStyle = "#2678ad";
+  ctx.fillRect(x + 2, y + 11, 16, 10);
+
+  // Dark pants
+  ctx.fillStyle = "#303653";
+  ctx.fillRect(x + 3, y + 21, 5, 6);
+  ctx.fillRect(x + 12, y + 21, 5, 6);
+
+  // Eyes
+  ctx.fillStyle = "#f5eeee";
+  ctx.fillRect(x + 5, y + 4, 3, 3);
+  ctx.fillRect(x + 13, y + 4, 3, 3);
+
+  // Health bar
+  ctx.fillStyle = "#222";
+  ctx.fillRect(x, y - 7, z.w, 4);
+  ctx.fillStyle = "#ef3333";
+  ctx.fillRect(x, y - 7, z.w * Math.max(0, z.hp / 5), 4);
+}

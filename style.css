@@ -1,1 +1,170 @@
 
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #20252b;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+}
+
+header {
+  padding: 12px;
+  background: #354d32;
+  border-bottom: 4px solid #253822;
+}
+
+h1 {
+  margin: 4px;
+  font-size: clamp(22px, 5vw, 34px);
+  text-shadow: 2px 3px #172217;
+}
+
+header p {
+  margin: 6px;
+  color: #d9f4cf;
+}
+
+#hud {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: #30363d;
+}
+
+#hud span {
+  padding: 8px 12px;
+  background: #171b20;
+  border: 2px solid #59636e;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+main {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #7cc9f5;
+  border: 4px solid #777;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+#hotbar {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 0;
+}
+
+button {
+  min-height: 42px;
+  padding: 9px 12px;
+  color: white;
+  background: #494f55;
+  border: 3px solid #777e85;
+  border-bottom-color: #292d31;
+  border-right-color: #292d31;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:hover {
+  background: #5c684c;
+}
+
+button:active {
+  transform: translateY(2px);
+}
+
+#hotbar button.active {
+  background: #65572d;
+  border-color: #ffe46b;
+  box-shadow: 0 0 8px #ffe46b;
+}
+
+#controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+#controls button {
+  min-width: 90px;
+}
+
+#attack {
+  background: #8d3333;
+}
+
+#mine {
+  background: #80612b;
+}
+
+#place {
+  background: #35663b;
+}
+
+#reset {
+  background: #3c526e;
+}
+
+footer {
+  padding: 16px;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 5px;
+  }
+
+  #hud {
+    gap: 5px;
+    padding: 8px 4px;
+  }
+
+  #hud span {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  #controls {
+    gap: 5px;
+  }
+
+  #controls button {
+    flex: 1 1 28%;
+    min-width: 75px;
+    padding: 9px 4px;
+    font-size: 12px;
+  }
+
+  #hotbar button {
+    flex: 1 1 28%;
+    padding: 7px 3px;
+    font-size: 12px;
+  }
+}

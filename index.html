@@ -1,4 +1,30 @@
+<button id="jumpBtn">JUMP ⬆️</button>
 
+<script>
+  document.addEventListener("keydown", function(event) {
+    if (event.code === "Space" || event.code === "ArrowUp") {
+      event.preventDefault();
+
+      // Make your character jump
+      const player = document.querySelector("#player");
+
+      if (player) {
+        player.style.transition = "transform 0.3s ease";
+        player.style.transform = "translateY(-100px)";
+
+        setTimeout(() => {
+          player.style.transform = "translateY(0)";
+        }, 300);
+      }
+    }
+  });
+
+  document.getElementById("jumpBtn").onclick = function() {
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "Space" })
+    );
+  };
+</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -908,3 +908,270 @@
         }
 
         function getSurfaceHeight(x) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Minecraft 2D Engine clone</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        #game-wrapper {
+            position: relative;
+        }
+        canvas {
+            border: 4px solid #3c3c3c;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            display: block;
+            background-color: #78a7ff;
+        }
+        #inventory-screen {
+            display: none;
+            position: absolute;
+            top: 25px;
+            left: 50px;
+            width: 700px;
+            height: 400px;
+            background: #4a4a4a;
+            border: 6px solid #2c2c2c;
+            box-shadow: inset -3px -3px #1a1a1a, inset 3px 3px #8b8b8b, 0 0 25px rgba(0,0,0,0.9);
+            z-index: 10;
+            flex-direction: column;
+        }
+        .inv-header {
+            padding: 10px;
+            background: #2c2c2c;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: #ddd;
+            border-bottom: 4px solid #1a1a1a;
+        }
+        .item-grid {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+            gap: 8px;
+            align-content: flex-start;
+            background: #8b8b8b;
+            box-shadow: inset 3px 3px #3a3a3a, inset -3px -3px #dfdfdf;
+        }
+        .item-slot {
+            width: 52px;
+            height: 52px;
+            background: #8b8b8b;
+            border: 4px solid #373737;
+            border-top-color: #ffffff;
+            border-left-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .item-slot:hover {
+            background: #c6c6c6;
+            border-color: #ffffff;
+            border-top-color: #373737;
+            border-left-color: #373737;
+        }
+        .item-icon {
+            font-size: 22px;
+        }
+        #hud {
+            margin-top: 15px;
+            background: rgba(0,0,0,0.85);
+            padding: 12px 25px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 2px solid #3c3c3c;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .key { color: #5cf55c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <canvas id="canvas" width="800" height="450"></canvas>
+        <div id="inventory-screen">
+            <div class="inv-header">Item Select Menu</div>
+            <div class="item-grid" id="item-container"></div>
+        </div>
+    </div>
+
+    <div id="hud">
+        <span class="key">A / D (or Left/Right)</span> = Walk | <span class="key">W / Space</span> = Jump | <span class="key">E</span> = Open Crafting/Item Pack<br>
+        <span class="key">Left Click</span> = Mine Block / Slash Hostile Mobs | <span class="key">Right Click</span> = Place Selected Block | Tool: <span id="active-item-name" style="color:#5cf55c; font-weight:bold;">Grass Block</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const invScreen = document.getElementById("inventory-screen");
+        const itemContainer = document.getElementById("item-container");
+        const activeItemNameDisplay = document.getElementById("active-item-name");
+
+        // Scale block definitions matching standard Paper Minecraft specs
+        const B_SIZE = 32;
+        const WORLD_W = 180;
+        const WORLD_H = 48;
+        
+        let world = [];
+        let keys = {};
+        let isInventoryOpen = false;
+        let timeOfDay = 6000;
+        const DAY_LENGTH = 24000;
+        let mobs = [];
+
+        // Master Item Palette Registry
+        const ITEMS = [
+            { id: 1, name: "Grass Block", color: "#558B2F", text: "🌱" },
+            { id: 2, name: "Dirt Block", color: "#8D6E63", text: "🟫" },
+            { id: 18, name: "Stone", color: "#757575", text: "🪨" },
+            { id: 31, name: "Deepslate", color: "#37474f", text: "🪨" },
+            { id: 41, name: "Bedrock", color: "#111111", text: "⬛" },
+            { id: 93, name: "Oak Planks", color: "#cd853f", text: "🪵" },
+            { id: 105, name: "Oak Log", color: "#5c4033", text: "🪵" },
+            { id: 106, name: "Oak Leaves", color: "#1e3f20", text: "🍃" },
+            { id: 112, name: "Red Bed", color: "#e11d48", text: "🛏️" },
+            { id: 200, name: "Glass", color: "#e0f2fe", text: "🪟" },
+            { id: 201, name: "Brick Roof Tile", color: "#b91c1c", text: "🧱" },
+            { id: 68, name: "Coal Ore", color: "#424242", text: "⚫" },
+            { id: 76, name: "Diamond Ore", color: "#4dd0e1", text: "💎" },
+            { id: 160, name: "Apple", color: "#ef4444", text: "🍎" }
+        ];
+
+        let selectedItem = ITEMS[0];
+
+        // Player physics properties tuned specifically to match the floaty Scratch feel
+        let player = { 
+            x: 2880, 
+            y: 100, 
+            vx: 0, 
+            vy: 0, 
+            w: 24, 
+            h: 52, 
+            speed: 3.8, 
+            jump: -7.8, 
+            friction: 0.8,
+            grounded: false,
+            health: 20,
+            maxHealth: 20,
+            direction: 1,
+            invulnFrames: 0
+        };
+
+        // --- MAP GENERATION STRATIFICATION ENGINE ---
+        function initWorld() {
+            for (let x = 0; x < WORLD_W; x++) {
+                world[x] = [];
+                // Smooth rolling surface calculations
+                let surfaceY = Math.floor(20 + Math.sin(x * 0.06) * 5 + Math.cos(x * 0.03) * 2);
+                
+                for (let y = 0; y < WORLD_H; y++) {
+                    if (y < surfaceY) world[x][y] = 0; // Atmosphere
+                    else if (y === surfaceY) world[x][y] = 1; // Grass Crust
+                    else if (y > surfaceY && y < surfaceY + 4) world[x][y] = 2; // Sub-dirt
+                    else if (y >= surfaceY + 4 && y < 34) {
+                        world[x][y] = Math.random() < 0.045 ? 68 : 18; // Stone + Coal matrix
+                    } else if (y >= 34 && y < WORLD_H - 2) {
+                        world[x][y] = Math.random() < 0.035 ? 76 : 31; // Deepslate + Diamond strata
+                    } else {
+                        world[x][y] = 41; // Solid Bedrock bottom
+                    }
+                }
+            }
+
+            // Procedural Tree population
+            for (let x = 8; x < WORLD_W - 8; x += Math.floor(Math.random() * 7) + 8) {
+                if (x > WORLD_W / 2 - 18 && x < WORLD_W / 2 + 18) continue;
+                spawnTree(x);
+            }
+
+            // Generate Villages near map spawn zones
+            spawnVillage(Math.floor(WORLD_W / 2) - 10);
+            spawnVillage(Math.floor(WORLD_W / 2) + 6);
+
+            player.x = (WORLD_W / 2) * B_SIZE;
+            player.y = (getSurfaceHeight(Math.floor(WORLD_W / 2)) - 3) * B_SIZE;
+            
+            // Populate initial mobs
+            spawnMob(player.x - 350, player.y, "zombie");
+            spawnMob(player.x + 350, player.y, "creeper");
+        }
+
+        function spawnTree(x) {
+            let y = getSurfaceHeight(x);
+            if (world[x][y] !== 1) return; 
+            
+            let treeH = Math.floor(Math.random() * 2) + 4;
+            for (let i = 1; i <= treeH; i++) {
+                world[x][y - i] = 105;
+            }
+            let leafCenterY = y - treeH;
+            for (let lx = x - 2; lx <= x + 2; lx++) {
+                for (let ly = leafCenterY - 3; ly <= leafCenterY; ly++) {
+                    if (lx >= 0 && lx < WORLD_W && ly >= 0 && ly < WORLD_H) {
+                        if (world[lx][ly] === 0) world[lx][ly] = 106;
+                    }
+                }
+            }
+        }
+
+        function spawnVillage(startX) {
+            let startY = getSurfaceHeight(startX) - 1;
+            let w = 8, h = 6;
+
+            for (let x = startX; x < startX + w; x++) {
+                for (let y = startY; y > startY - h; y--) {
+                    if (x >= 0 && x < WORLD_W && y >= 0 && y < WORLD_H) {
+                        if (x === startX || x === startX + w - 1) {
+                            world[x][y] = 105; // Corner wood supports
+                        } else if (y === startY) {
+                            world[x][y] = 93;  // Floor base
+                        } else if (y === startY - h + 1) {
+                            world[x][y] = 93;  // Ceiling frame
+                        } else {
+                            world[x][y] = (x === startX + 2 || x === startX + 5) && y === startY - 3 ? 200 : 0; // Windows
+                        }
+                    }
+                }
+            }
+            // Add roof line tiles
+            for (let x = startX - 1; x <= startX + w; x++) {
+                if (x >= 0 && x < WORLD_W) world[x][startY - h] = 201; 
+            }
+            // Clear entry doorway paths
+            world[startX + 3][startY - 1] = 0;
+            world[startX + 3][startY - 2] = 0;
+        }
+
+        function getSurfaceHeight(x) {
+            for (let y = 0; y < WORLD_H; y++) {
+                if (world[x][y] > 0) return y;
+            }
+            return WORLD_H - 1;
+        }
+
+        function getBlock(bx, by) {

@@ -1,4 +1,10 @@
+const canvas = document.getElementById("game");
 
+if (!canvas) {
+  throw new Error("Game canvas was not found! Check index.html");
+}
+
+const ctx = canvas.getContext("2d");
 "use strict";
 
 // MINI MINECRAFT 2D — fresh game engine

@@ -3,71 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paper Minecraft - Ultimate Fixed Edition</title>
+    <title>Local 2D Sandbox</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
         body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #111;
+            color: #fff;
+            font-family: sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            height: 100vh;
             overflow: hidden;
         }
-        h1 {
-            margin-bottom: 15px;
-            font-size: 24px;
-            letter-spacing: 1px;
-            color: #c6c6c6;
-            text-shadow: 2px 2px #000000;
+        canvas {
+            background-color: #87CEEB;
+            border: 4px solid #444;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
-        .game-container {
-            position: relative;
-            /* Extra width and height match TurboWarp container padding bounds */
-            width: 486px;
-            height: 412px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-            border: 4px solid #4a4a4a;
-            border-radius: 4px;
-            background-color: #000;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .controls-hint {
+        #hud {
             margin-top: 15px;
-            font-size: 14px;
-            color: #888888;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
             text-align: center;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Paper Minecraft</h1>
-
-    <div class="game-container">
-        <!-- Replaced with the valid project ID and added autoplay parameter -->
-        <iframe src="https://turbowarp.org" 
-                allowtransparency="true" 
-                frameborder="0" 
-                scrolling="no" 
-                allowfullscreen>
-        </iframe>
+    <canvas id="canvas" width="800" height="450"></canvas>
+    <div id="hud">
+        Move: A/D or Arrows | Jump: W or Space <br>
+        Left Click: Break | Right Click: Place <br>
+        Select Item: 1 (Grass), 2 (Dirt), 3 (Stone), 4 (Wood)
     </div>
 
-    <div class="controls-hint">
-        The game will load and start automatically. Enjoy!
-    </div>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
 
+        const B_SIZE = 32;
+        const WORLD_W = 100;
+        const WORLD_H = 30;
+        
+        let world = [];
+        let selected = 1; 
+        let keys = {};
+
+        let player = { x: 400, y: 50, vx: 0, vy: 0, w: 20, h: 50, speed: 4, jump: -7, grounded: false };
+
+        // Generate map entirely out of pure math formulas locally
+        for (let x = 0; x < WORLD_W; x++) {
+            world[x] = [];
+            let ground = Math.floor(12 + Math.sin(x * 0.1) * 3);
+            for (let y = 0; y < WORLD_H; y++) {
+                if (y < ground) world[x][y] = 0;
+                else if (y === ground) world[x][y] = 1; // Grass
+                else if (y < ground + 4) world[x][y] = 2; // Dirt
+                else world[x][y] = 3; // Stone
+            }
+        }
+
+        function getBlock(bx, by) {
+            if (bx >= 0 && bx < WORLD_W && by >= 0 && by < WORLD_H) return world[bx][by];
+            return 3;
+        }
+
+        function checkCollide(px, py) {
+            let l = Math.floor(px / B_SIZE), r = Math.floor((px + player.w) / B_SIZE);
+            let t = Math.floor(py / B_SIZE), b = Math.floor((py + player.h) / B_SIZE);
+            for (let x = l; x <= r; x++) {
+                for (let y = t; y <= b; y++) {
+                    if (getBlock(x, y) > 0) return true;
+                }
+            }
+            return false;
+        }
+
+        function loop() {
+            // Movement Engine
+            player.vx = 0;
+            if (keys['KeyA'] || keys['ArrowLeft']) player.vx = -player.speed;
+            if (keys['KeyD'] || keys['ArrowRight']) player.vx = player.speed;
+
+            player.x += player.vx;
+            if (checkCollide(player.x, player.y)) player.x -= player.vx;
+
+            player.vy += 0.3; // Gravity physics loop logic
+            player.y += player.vy;
+            player.grounded = false;
+
+            if (checkCollide(player.x, player.y)) {
+                player.y -= player.vy;
+                if (player.vy > 0) player.grounded = true;
+                player.vy = 0;
+            }
+
+            if ((keys['KeyW'] || keys['Space'] || keys['ArrowUp']) && player.grounded) {
+                player.vy = player.jump;
+            }
+
+            // Rendering graphics framework matrix coordinates
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            let camX = canvas.width/2 - player.x - player.w/2;
+            let camY = canvas.height/2 - player.y - player.h/2;
+
+            for(let x=0; x<WORLD_W; x++) {
+                for(let y=0; y<WORLD_H; y++) {
+                    let type = world[x][y];
+                    if(type > 0) {
+                        ctx.fillStyle = ["", "#558B2F", "#8D6E63", "#757575", "#D7CCC8"][type];
+                        ctx.fillRect(x*B_SIZE+camX, y*B_SIZE+camY, B_SIZE, B_SIZE);
+                    }
+                }
+            }
+
+            ctx.fillStyle = "#FF5722"; // Draw character object marker box
+            ctx.fillRect(player.x+camX, player.y+camY, player.w, player.h);
+
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.key >= '1' && e.key <= '4') selected = parseInt(e.key);
+        });
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        canvas.addEventListener('mousedown', e => {
+            let rect = canvas.getBoundingClientRect();
+            let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            let camX = canvas.width/2 - player.x - player.w/2;
+            let camY = canvas.height/2 - player.y - player.h/2;
+            
+            let bx = Math.floor((mx - camX) / B_SIZE);
+            let by = Math.floor((my - camY) / B_SIZE);
+
+            if(bx >= 0 && bx < WORLD_W && by >= 0 && by < WORLD_H) {
+                if(e.button === 0) world[bx][by] = 0;
+                else if(e.button === 2 && world[bx][by] === 0) world[bx][by] = selected;
+            }
+        });
+        canvas.oncontextmenu = e => e.preventDefault();
+
+        loop();
+    </script>
 </body>
 </html>
+

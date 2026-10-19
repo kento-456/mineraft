@@ -154,3 +154,212 @@
 </body>
 </html>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate 2D Minecraft Engine</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #111;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        #game-wrapper {
+            position: relative;
+        }
+        canvas {
+            background-color: #78a7ff; /* Sky color */
+            border: 4px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            display: block;
+        }
+        #inventory-screen {
+            display: none;
+            position: absolute;
+            top: 25px;
+            left: 50px;
+            width: 700px;
+            height: 400px;
+            background: rgba(40, 40, 40, 0.95);
+            border: 4px solid #1c1c1c;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            z-index: 10;
+            flex-direction: column;
+        }
+        .tabs {
+            display: flex;
+            background: #222;
+            border-bottom: 2px solid #1c1c1c;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 8px 12px;
+            background: #333;
+            cursor: pointer;
+            border-right: 1px solid #222;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .tab.active {
+            background: #555;
+            color: #5cf55c;
+        }
+        .item-grid {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+            gap: 6px;
+            align-content: flex-start;
+        }
+        .item-slot {
+            width: 48px;
+            height: 48px;
+            background: #8b8b8b;
+            border: 3px solid #373737;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .item-slot:hover {
+            background: #c6c6c6;
+            border-color: #555;
+        }
+        .item-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(16,0,16,0.9);
+            border: 2px solid #2a0a54;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 100;
+            display: none;
+        }
+        #hud {
+            margin-top: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #444;
+        }
+        .key { color: #5cf55c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <canvas id="canvas" width="800" height="450"></canvas>
+        
+        <!-- Tabbed Master UI Screen Overlay -->
+        <div id="inventory-screen">
+            <div class="tabs" id="tab-header"></div>
+            <div class="item-grid" id="item-container"></div>
+        </div>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <div id="hud">
+        <span class="key">A / D</span> (or Arrows) = Move | <span class="key">W / Space</span> = Jump | <span class="key">E</span> = Toggle Full Creative Menu<br>
+        <span class="key">Left Click</span> = Break | <span class="key">Right Click</span> = Place | Selected Element: <span id="active-item-name" style="color:#5cf55c; font-weight:bold;">Grass Block</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const invScreen = document.getElementById("inventory-screen");
+        const tabHeader = document.getElementById("tab-header");
+        const itemContainer = document.getElementById("item-container");
+        const tooltip = document.getElementById("tooltip");
+        const activeItemNameDisplay = document.getElementById("active-item-name");
+
+        const B_SIZE = 32;
+        const WORLD_W = 120;
+        const WORLD_H = 45;
+        
+        let world = [];
+        let keys = {};
+        let isInventoryOpen = false;
+        let selectedItem = null;
+
+        let player = { x: 1920, y: 100, vx: 0, vy: 0, w: 22, h: 52, speed: 4, jump: -7.5, grounded: false };
+
+        // --- ENHANCED ITEM/BLOCK REGISTRY DATA LAYER ---
+        const ITEMS = [
+            // Category 1: Blocks (Building & Environmental)
+            { id: 1, name: "Grass Block", cat: "Blocks", color: "#558B2F", type: "block", text: "🌱" },
+            { id: 2, name: "Dirt Block", cat: "Blocks", color: "#8D6E63", type: "block", text: "🟫" },
+            { id: 3, name: "Coarse Dirt", cat: "Blocks", color: "#795548", type: "block", text: "🟫" },
+            { id: 4, name: "Rooted Dirt", cat: "Blocks", color: "#6d4c41", type: "block", text: "🪵" },
+            { id: 5, name: "Podzol", cat: "Blocks", color: "#5d4037", type: "block", text: "🟫" },
+            { id: 6, name: "Mycelium", cat: "Blocks", color: "#6a5acd", type: "block", text: "🔮" },
+            { id: 7, name: "Mud", cat: "Blocks", color: "#3e2723", type: "block", text: "🟫" },
+            { id: 8, name: "Packed Mud", cat: "Blocks", color: "#4e342e", type: "block", text: "🧱" },
+            { id: 9, name: "Clay Block", cat: "Blocks", color: "#a1887f", type: "block", text: "🧱" },
+            { id: 10, name: "Gravel", cat: "Blocks", color: "#9e9e9e", type: "block", text: "🪨" },
+            { id: 11, name: "Sand", cat: "Blocks", color: "#fff59d", type: "block", text: "⏳" },
+            { id: 12, name: "Red Sand", cat: "Blocks", color: "#ffab91", type: "block", text: "⏳" },
+            { id: 13, name: "Sandstone", cat: "Blocks", color: "#ffe082", type: "block", text: "🧱" },
+            { id: 14, name: "Cut Sandstone", cat: "Blocks", color: "#ffd54f", type: "block", text: "🧱" },
+            { id: 15, name: "Smooth Sandstone", cat: "Blocks", color: "#ffca28", type: "block", text: "🧱" },
+            { id: 16, name: "Chiseled Sandstone", cat: "Blocks", color: "#ffb300", type: "block", text: "🟡" },
+            { id: 17, name: "Red Sandstone", cat: "Blocks", color: "#ff8a65", type: "block", text: "🧱" },
+            { id: 18, name: "Stone", cat: "Blocks", color: "#757575", type: "block", text: "🪨" },
+            { id: 19, name: "Cobblestone", cat: "Blocks", color: "#616161", type: "block", text: "🪨" },
+            { id: 20, name: "Smooth Stone", cat: "Blocks", color: "#9e9e9e", type: "block", text: "🪨" },
+            { id: 21, name: "Stone Bricks", cat: "Blocks", color: "#424242", type: "block", text: "🧱" },
+            { id: 22, name: "Cracked Stone Bricks", cat: "Blocks", color: "#3a3a3a", type: "block", text: "🧱" },
+            { id: 23, name: "Mossy Stone Bricks", cat: "Blocks", color: "#2e3b2e", type: "block", text: "🌿" },
+            { id: 24, name: "Chiseled Stone Bricks", cat: "Blocks", color: "#212121", type: "block", text: "⬜" },
+            { id: 25, name: "Granite", cat: "Blocks", color: "#bcaaa4", type: "block", text: "🪨" },
+            { id: 26, name: "Polished Granite", cat: "Blocks", color: "#8d6e63", type: "block", text: "🪨" },
+            { id: 27, name: "Diorite", cat: "Blocks", color: "#e0e0e0", type: "block", text: "🪨" },
+            { id: 28, name: "Polished Diorite", cat: "Blocks", color: "#bdbdbd", type: "block", text: "🪨" },
+            { id: 29, name: "Andesite", cat: "Blocks", color: "#aeaeae", type: "block", text: "🪨" },
+            { id: 30, name: "Polished Andesite", cat: "Blocks", color: "#757575", type: "block", text: "🪨" },
+            { id: 31, name: "Deepslate", cat: "Blocks", color: "#37474f", type: "block", text: "🪨" },
+            { id: 32, name: "Cobbled Deepslate", cat: "Blocks", color: "#263238", type: "block", text: "🪨" },
+            { id: 33, name: "Polished Deepslate", cat: "Blocks", color: "#21272a", type: "block", text: "🪨" },
+            { id: 34, name: "Deepslate Bricks", cat: "Blocks", color: "#1c2124", type: "block", text: "🧱" },
+            { id: 35, name: "Deepslate Tiles", cat: "Blocks", color: "#15191c", type: "block", text: "🧱" },
+            { id: 36, name: "Tuff", cat: "Blocks", color: "#4e5d54", type: "block", text: "🪨" },
+            { id: 37, name: "Polished Tuff", cat: "Blocks", color: "#3b4740", type: "block", text: "🪨" },
+            { id: 38, name: "Tuff Bricks", cat: "Blocks", color: "#2d3631", type: "block", text: "🧱" },
+            { id: 39, name: "Calcite", cat: "Blocks", color: "#eeeeee", type: "block", text: "🪨" },
+            { id: 40, name: "Dripstone Block", cat: "Blocks", color: "#8d7765", type: "block", text: "🪨" },
+            { id: 41, name: "Bedrock", cat: "Blocks", color: "#111111", type: "block", text: "⬛" },
+            { id: 42, name: "Obsidian", cat: "Blocks", color: "#120a2a", type: "block", text: "🔮" },
+            { id: 43, name: "Crying Obsidian", cat: "Blocks", color: "#240046", type: "block", text: "💧" },
+            { id: 44, name: "Snow Block", cat: "Blocks", color: "#ffffff", type: "block", text: "❄️" },
+            { id: 45, name: "Ice", cat: "Blocks", color: "#a5f3fc", type: "block", text: "🧊" },
